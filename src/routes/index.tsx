@@ -8,8 +8,8 @@ export const Route = createFileRoute("/")({
 });
 
 type Result =
-  | { kind: "ok"; namn: string; count: number; eventTitel: string }
-  | { kind: "already"; namn: string; count: number; eventTitel: string }
+  | { kind: "ok"; namn: string; count: number; eventTitel: string; rank: number; totalMembers: number }
+  | { kind: "already"; namn: string; count: number; eventTitel: string; rank: number; totalMembers: number }
   | { kind: "error"; message: string };
 
 function CheckInPage() {
