@@ -167,21 +167,25 @@ function CheckInPage() {
         {result && (
           <div className="mt-6">
             {result.kind === "ok" || result.kind === "already" ? (
-              <div className="rounded-2xl border border-success/40 bg-success/10 p-6">
+              <div className="rounded-2xl border-2 border-green-500/60 bg-green-500/15 p-6 shadow-panel">
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-1 h-6 w-6 shrink-0 text-success" />
-                  <div className="min-w-0">
-                    <p className="text-lg font-semibold">
+                  <CheckCircle2 className="mt-1 h-7 w-7 shrink-0 text-green-500" />
+                  <div className="min-w-0 space-y-3">
+                    <p className="text-2xl font-extrabold text-green-500">
                       Välkommen {result.namn}!
                     </p>
-                    <p className="mt-1 text-muted-foreground">
-                      Detta är ditt{" "}
-                      <span className="mono font-semibold text-foreground">
-                        {formatOrdinal(result.count)}
-                      </span>{" "}
-                      besök.
+                    <p className="text-base text-foreground">
+                      Du har nu deltagit vid{" "}
+                      <span className="mono font-bold">{result.count}</span>{" "}
+                      medlemskvällar.
                     </p>
-                    <p className="mono mt-2 text-xs uppercase tracking-widest text-muted-foreground">
+                    <p className="text-base text-foreground">
+                      Du ligger på plats{" "}
+                      <span className="mono font-bold">{result.rank}</span> av{" "}
+                      <span className="mono font-bold">{result.totalMembers}</span>{" "}
+                      medlemmar.
+                    </p>
+                    <p className="mono pt-1 text-xs uppercase tracking-widest text-muted-foreground">
                       {result.eventTitel}
                       {result.kind === "already" && " — redan incheckad"}
                     </p>
