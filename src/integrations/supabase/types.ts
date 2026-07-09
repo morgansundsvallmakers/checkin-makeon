@@ -14,16 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance: {
+        Row: {
+          event_id: string
+          id: string
+          incheckad: string
+          member_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          incheckad?: string
+          member_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          incheckad?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          aktiv: boolean
+          datum: string
+          id: string
+          skapad: string
+          titel: string
+        }
+        Insert: {
+          aktiv?: boolean
+          datum: string
+          id?: string
+          skapad?: string
+          titel: string
+        }
+        Update: {
+          aktiv?: boolean
+          datum?: string
+          id?: string
+          skapad?: string
+          titel?: string
+        }
+        Relationships: []
+      }
+      members: {
+        Row: {
+          aktiv: boolean
+          id: string
+          medlemsnummer: string
+          namn: string
+          skapad: string
+        }
+        Insert: {
+          aktiv?: boolean
+          id?: string
+          medlemsnummer: string
+          namn: string
+          skapad?: string
+        }
+        Update: {
+          aktiv?: boolean
+          id?: string
+          medlemsnummer?: string
+          namn?: string
+          skapad?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +257,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin"],
+    },
   },
 } as const
