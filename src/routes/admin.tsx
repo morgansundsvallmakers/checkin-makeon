@@ -582,7 +582,7 @@ function ExportPanel() {
       "medlemskvall_datum",
       "incheckad",
     ];
-    const rows = (att ?? []).map((a: Attendance) => {
+    const rows = (att ?? []).map((a) => {
       const m = mMap.get(a.member_id);
       const e = eMap.get(a.event_id);
       return [
