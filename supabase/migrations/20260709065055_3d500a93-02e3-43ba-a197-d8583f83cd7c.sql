@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.enforce_single_active_event() FROM PUBLIC, anon, authenticated;

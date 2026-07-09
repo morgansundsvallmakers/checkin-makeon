@@ -384,7 +384,12 @@ function EventsPanel() {
   return (
     <section className="rounded-2xl border border-border bg-card shadow-panel">
       <header className="flex items-center justify-between border-b border-border p-4">
-        <h2 className="font-semibold">Medlemskvällar</h2>
+        <div>
+          <h2 className="font-semibold">Medlemskvällar</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Endast en medlemskväll kan vara aktiv åt gången. Alla incheckningar registreras på den aktiva kvällen.
+          </p>
+        </div>
         <button
           onClick={() => setCreating(true)}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-foreground hover:brightness-105"
