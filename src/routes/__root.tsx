@@ -7,26 +7,28 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { supabase } from "@/integrations/supabase/client";
+import { Wrench } from "lucide-react";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <p className="mono text-sm text-accent">404</p>
+        <h1 className="mt-2 text-3xl font-bold">Sidan hittades inte</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          Länken kanske är gammal eller så har sidan flyttats.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:brightness-105"
           >
-            Go home
+            Till incheckning
           </Link>
         </div>
       </div>
@@ -44,11 +46,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
+        <h1 className="text-xl font-semibold">Något gick fel</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Försök igen om en stund.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -56,15 +56,15 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:brightness-105"
           >
-            Try again
+            Försök igen
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium transition hover:bg-secondary"
           >
-            Go home
+            Startsidan
           </a>
         </div>
       </div>
@@ -77,20 +77,35 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Makerspace — Incheckning & Leaderboard" },
+      {
+        name: "description",
+        content:
+          "Checka in på medlemskvällen, se topplistan och håll koll på ditt makerspace.",
+      },
+      { property: "og:title", content: "Makerspace — Incheckning & Leaderboard" },
+      {
+        property: "og:description",
+        content: "Checka in på medlemskvällen och se topplistan.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
-        rel: "stylesheet",
-        href: appCss,
+        rel: "preconnect",
+        href: "https://fonts.googleapis.com",
       },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap",
+      },
+      { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
@@ -102,7 +117,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="sv">
       <head>
         <HeadContent />
       </head>
@@ -114,13 +129,75 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function SiteHeader() {
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(!!session);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+        <Link to="/" className="flex items-center gap-2 group">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground shadow-sm">
+            <Wrench className="h-5 w-5" strokeWidth={2.5} />
+          </span>
+          <span className="flex flex-col leading-tight">
+            <span className="font-extrabold tracking-tight">Makerspace</span>
+            <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              medlemsportal
+            </span>
+          </span>
+        </Link>
+        <nav className="flex items-center gap-1 text-sm">
+          <NavLink to="/">Incheckning</NavLink>
+          <NavLink to="/leaderboard">Leaderboard</NavLink>
+          {signedIn ? (
+            <NavLink to="/admin">Admin</NavLink>
+          ) : (
+            <NavLink to="/auth">Logga in</NavLink>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+function NavLink({ to, children }: { to: string; children: ReactNode }) {
+  return (
+    <Link
+      to={to}
+      activeOptions={{ exact: to === "/" }}
+      className="rounded-md px-3 py-1.5 font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+      activeProps={{
+        className:
+          "rounded-md px-3 py-1.5 font-semibold text-foreground bg-secondary",
+      }}
+    >
+      {children}
+    </Link>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="flex min-h-dvh flex-col">
+        <SiteHeader />
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <footer className="border-t border-border/70 py-6 text-center text-xs text-muted-foreground">
+          <span className="mono">// byggt för makers, av makers</span>
+        </footer>
+      </div>
     </QueryClientProvider>
   );
 }
