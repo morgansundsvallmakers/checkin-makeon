@@ -68,18 +68,36 @@ function CheckInPage() {
       const already = aErr?.code === "23505"; // unique violation
       if (aErr && !already) throw aErr;
 
-      // Räkna totalt antal besök
+      // Räkna totalt antal besök för medlemmen
       const { count, error: cErr } = await supabase
         .from("attendance")
         .select("*", { count: "exact", head: true })
         .eq("member_id", member.id);
       if (cErr) throw cErr;
+      const myCount = count ?? 0;
+
+      // Beräkna placering på leaderboard
+      const { data: allAtt, error: laErr } = await supabase
+        .from("attendance")
+        .select("member_id");
+      if (laErr) throw laErr;
+      const counts = new Map<string, number>();
+      for (const a of allAtt ?? []) {
+        counts.set(a.member_id, (counts.get(a.member_id) ?? 0) + 1);
+      }
+      const totalMembers = counts.size;
+      let rank = 1;
+      for (const [mid, c] of counts) {
+        if (mid !== member.id && c > myCount) rank++;
+      }
 
       setResult({
         kind: already ? "already" : "ok",
         namn: member.namn,
-        count: count ?? 0,
+        count: myCount,
         eventTitel: event.titel,
+        rank,
+        totalMembers,
       });
       setMedlemsnummer("");
     } catch (err) {
