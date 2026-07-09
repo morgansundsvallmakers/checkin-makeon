@@ -77,19 +77,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Makerspace — Incheckning & Leaderboard" },
+      { title: "Sundsvall Makers MakeOn— Incheckning & Leaderboard" },
       {
         name: "description",
         content:
-          "Checka in på medlemskvällen, se topplistan och håll koll på ditt makerspace.",
+          "Checka in på MakeOn, se topplistan och håll koll på din makerspace-närvaro.",
       },
-      { property: "og:title", content: "Makerspace — Incheckning & Leaderboard" },
+      { property: "og:title", content: "Sundsvall Makers MakeOn— Incheckning & Leaderboard" },
       {
         property: "og:description",
-        content: "Checka in på medlemskvällen och se topplistan.",
+        content: "Checka in på MakeOn, se topplistan och håll koll på din makerspace-närvaro.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Sundsvall Makers MakeOn— Incheckning & Leaderboard" },
+      { name: "twitter:description", content: "Checka in på MakeOn, se topplistan och håll koll på din makerspace-närvaro." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d978bb7f-e007-462d-85e4-b1b348c9811f" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d978bb7f-e007-462d-85e4-b1b348c9811f" },
     ],
     links: [
       {
