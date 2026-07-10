@@ -164,7 +164,7 @@ function SiteHeader() {
           {signedIn ? (
             <NavLink to="/admin">Admin</NavLink>
           ) : (
-            <NavLink to="/auth">Logga in</NavLink>
+            <NavLink to="/auth">Admin</NavLink>
           )}
         </nav>
       </div>
