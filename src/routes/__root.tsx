@@ -149,7 +149,7 @@ function SiteHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <Link to="/" className="flex items-center gap-2 group">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground shadow-sm">
-            <Trophy className="h-5 w-5" strokeWidth={2.5} />
+            <Wrench className="h-5 w-5" strokeWidth={2.5} />
           </span>
           <span className="flex flex-col leading-tight">
             <span className="font-extrabold tracking-tight">Sundsvall Makers</span>
