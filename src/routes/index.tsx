@@ -146,7 +146,7 @@ function CheckInPage() {
               autoFocus
               value={medlemsnummer}
               onChange={(e) => setMedlemsnummer(e.target.value)}
-              placeholder="t.ex. 1042"
+              placeholder="t.ex. 15"
               className="mono flex-1 rounded-md border border-input bg-background px-4 py-3 text-lg outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
             />
             <button
