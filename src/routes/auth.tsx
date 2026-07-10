@@ -130,7 +130,7 @@ function AuthPage() {
             : "Har du redan konto? Logga in"}
         </button>
         <p className="mono mt-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground">
-          med adminkonto kan du lägga till medlemmar och skapa event
+          lägg till medlemmar och skapa event som admin
         </p>
       </div>
     </div>
