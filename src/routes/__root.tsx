@@ -154,7 +154,7 @@ function SiteHeader() {
           <span className="flex flex-col leading-tight">
             <span className="font-extrabold tracking-tight">Sundsvall Makers</span>
             <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              närvaroliga
+              check-in
             </span>
           </span>
         </Link>
