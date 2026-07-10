@@ -77,7 +77,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Sundsvall Makers MakeOn— Incheckning & Leaderboard" },
+      { title: "Sundsvall Makers MakeOn — Incheckning & Leaderboard" },
       {
         name: "description",
         content:
@@ -90,7 +90,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Sundsvall Makers MakeOn— Incheckning & Leaderboard" },
+      { name: "twitter:title", content: "Sundsvall Makers MakeOn — Incheckning & Leaderboard" },
       { name: "twitter:description", content: "Checka in på MakeOn, se topplistan och håll koll på din makerspace-närvaro." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d978bb7f-e007-462d-85e4-b1b348c9811f" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d978bb7f-e007-462d-85e4-b1b348c9811f" },
@@ -152,9 +152,9 @@ function SiteHeader() {
             <Wrench className="h-5 w-5" strokeWidth={2.5} />
           </span>
           <span className="flex flex-col leading-tight">
-            <span className="font-extrabold tracking-tight">Makerspace</span>
+            <span className="font-extrabold tracking-tight">Sundsvall Makers</span>
             <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              medlemsportal
+              närvaroliga
             </span>
           </span>
         </Link>
