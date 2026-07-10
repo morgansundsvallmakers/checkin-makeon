@@ -126,11 +126,11 @@ function AuthPage() {
           className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground"
         >
           {mode === "signin"
-            ? "Första gången? Skapa konto"
+            ? "Första gången? Skapa Admin-konto"
             : "Har du redan konto? Logga in"}
         </button>
         <p className="mono mt-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground">
-          första kontot blir automatiskt admin
+          med adminkonto kan du lägga till medlemmar och skapa event
         </p>
       </div>
     </div>
