@@ -69,7 +69,7 @@ function CheckInPage() {
         .maybeSingle();
       if (mErr) throw mErr;
       if (!member) {
-        setResult({ kind: "error", message: "Inget medlemsnummer hittades." });
+        setResult({ kind: "error", message: "Ingen medlem med det medlemsnummer hittades." });
         return;
       }
       if (!member.aktiv) {
