@@ -472,6 +472,26 @@ function EventsPanel() {
           }}
         />
       )}
+      {editing && (
+        <EventModal
+          event={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+        />
+      )}
+      {deleting && (
+        <DeleteEventModal
+          event={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => {
+            setDeleting(null);
+            load();
+          }}
+        />
+      )}
     </section>
   );
 }
