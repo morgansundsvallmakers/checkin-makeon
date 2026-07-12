@@ -8,6 +8,7 @@ import {
   LogOut,
   Pencil,
   Power,
+  Trash2,
   Calendar,
   Users,
 } from "lucide-react";
