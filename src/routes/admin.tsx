@@ -519,9 +519,10 @@ function EventModal({
     e.preventDefault();
     setSaving(true);
     setError(null);
+    const senast_andrad = new Date().toISOString();
     const { error } = event
-      ? await supabase.from("events").update({ titel, datum, aktiv }).eq("id", event.id)
-      : await supabase.from("events").insert({ titel, datum, aktiv });
+      ? await supabase.from("events").update({ titel, datum, aktiv, senast_andrad }).eq("id", event.id)
+      : await supabase.from("events").insert({ titel, datum, aktiv, senast_andrad });
     setSaving(false);
     if (error) setError(error.message);
     else onSaved();
