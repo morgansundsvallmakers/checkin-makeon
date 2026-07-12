@@ -157,12 +157,41 @@ function CheckInPage() {
           </span>
           <span className="h-px flex-1 bg-border" />
         </div>
-        <h1 className="text-3xl font-extrabold sm:text-4xl">
-          Välkommen till medlemskvällen
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Skriv in ditt medlemsnummer så registrerar vi din närvaro.
-        </p>
+        {heading.kind === "active" && (
+          <>
+            <h1 className="text-3xl font-extrabold sm:text-4xl">
+              Välkommen till {heading.titel}
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Skriv in ditt medlemsnummer så registrerar vi din närvaro.
+            </p>
+          </>
+        )}
+        {heading.kind === "upcoming" && (
+          <>
+            <h1 className="text-3xl font-extrabold sm:text-4xl">
+              Nästa medlemskväll: {heading.titel}
+            </h1>
+            <p className="mt-2 flex items-center gap-2 text-muted-foreground">
+              <CalendarDays className="h-4 w-4" />
+              <span className="mono">{formatSwedishDate(heading.datum)}</span>
+            </p>
+          </>
+        )}
+        {heading.kind === "none" && (
+          <>
+            <h1 className="text-3xl font-extrabold sm:text-4xl">
+              Inga event är inbokade
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Håll utkik — nya medlemskvällar publiceras här.
+            </p>
+          </>
+        )}
+        {heading.kind === "loading" && (
+          <div className="h-20" />
+        )}
+
 
         <form
           onSubmit={handleSubmit}
