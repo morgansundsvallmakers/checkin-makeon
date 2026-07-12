@@ -271,6 +271,13 @@ function CheckInPage() {
   );
 }
 
-function formatOrdinal(n: number) {
-  return `${n}:e`;
+function formatSwedishDate(iso: string) {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("sv-SE", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
+
