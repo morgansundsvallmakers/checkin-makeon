@@ -3,21 +3,6 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
-import { createServerFn } from "@tanstack/start";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-export const listUsers = createServerFn("GET", async () => {
-  const { data, error } = await supabaseAdmin.auth.admin.listUsers();
-  if (error) throw error;
-  return data.users;
-});
-
-
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
