@@ -441,12 +441,20 @@ function EventsPanel() {
                     </span>
                   </td>
                   <td className="px-4 py-2 text-right">
-                    <IconBtn
-                      onClick={() => toggleActive(ev)}
-                      label={ev.aktiv ? "Inaktivera" : "Aktivera"}
-                    >
-                      <Power className="h-4 w-4" />
-                    </IconBtn>
+                    <div className="flex justify-end gap-1">
+                      <IconBtn onClick={() => setEditing(ev)} label="Redigera">
+                        <Pencil className="h-4 w-4" />
+                      </IconBtn>
+                      <IconBtn
+                        onClick={() => toggleActive(ev)}
+                        label={ev.aktiv ? "Inaktivera" : "Aktivera"}
+                      >
+                        <Power className="h-4 w-4" />
+                      </IconBtn>
+                      <IconBtn onClick={() => setDeleting(ev)} label="Radera">
+                        <Trash2 className="h-4 w-4" />
+                      </IconBtn>
+                    </div>
                   </td>
                 </tr>
               ))
