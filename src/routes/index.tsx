@@ -17,6 +17,42 @@ function CheckInPage() {
   const [medlemsnummer, setMedlemsnummer] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [heading, setHeading] = useState<
+    | { kind: "active"; titel: string; datum: string }
+    | { kind: "upcoming"; titel: string; datum: string }
+    | { kind: "none" }
+    | { kind: "loading" }
+  >({ kind: "loading" });
+
+  useEffect(() => {
+    (async () => {
+      const { data: active } = await supabase
+        .from("events")
+        .select("titel, datum")
+        .eq("aktiv", true)
+        .order("datum", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (active) {
+        setHeading({ kind: "active", titel: active.titel, datum: active.datum });
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: upcoming } = await supabase
+        .from("events")
+        .select("titel, datum")
+        .gt("datum", today)
+        .order("datum", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (upcoming) {
+        setHeading({ kind: "upcoming", titel: upcoming.titel, datum: upcoming.datum });
+      } else {
+        setHeading({ kind: "none" });
+      }
+    })();
+  }, []);
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
