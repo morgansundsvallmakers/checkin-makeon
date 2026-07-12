@@ -69,7 +69,8 @@ function LeaderboardPage() {
   }, [members, att, range]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
+    <div className="mx-auto w-[80%] px-4 py-10 sm:py-14">
+
       <div className="mb-6 flex items-center gap-2">
         <span className="mono text-xs uppercase tracking-widest text-accent">
           // topp 10
