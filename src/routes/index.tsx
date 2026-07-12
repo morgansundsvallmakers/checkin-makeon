@@ -280,4 +280,3 @@ function formatSwedishDate(iso: string) {
     day: "numeric",
   });
 }
-
