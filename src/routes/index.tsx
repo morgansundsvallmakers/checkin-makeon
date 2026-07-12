@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, LogIn, Loader2, AlertCircle } from "lucide-react";
+import { CheckCircle2, LogIn, Loader2, AlertCircle, CalendarDays } from "lucide-react";
+
 
 export const Route = createFileRoute("/")({
   component: CheckInPage,
@@ -16,6 +17,42 @@ function CheckInPage() {
   const [medlemsnummer, setMedlemsnummer] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [heading, setHeading] = useState<
+    | { kind: "active"; titel: string; datum: string }
+    | { kind: "upcoming"; titel: string; datum: string }
+    | { kind: "none" }
+    | { kind: "loading" }
+  >({ kind: "loading" });
+
+  useEffect(() => {
+    (async () => {
+      const { data: active } = await supabase
+        .from("events")
+        .select("titel, datum")
+        .eq("aktiv", true)
+        .order("datum", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (active) {
+        setHeading({ kind: "active", titel: active.titel, datum: active.datum });
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: upcoming } = await supabase
+        .from("events")
+        .select("titel, datum")
+        .gt("datum", today)
+        .order("datum", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (upcoming) {
+        setHeading({ kind: "upcoming", titel: upcoming.titel, datum: upcoming.datum });
+      } else {
+        setHeading({ kind: "none" });
+      }
+    })();
+  }, []);
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -120,12 +157,41 @@ function CheckInPage() {
           </span>
           <span className="h-px flex-1 bg-border" />
         </div>
-        <h1 className="text-3xl font-extrabold sm:text-4xl">
-          Välkommen till medlemskvällen
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Skriv in ditt medlemsnummer så registrerar vi din närvaro.
-        </p>
+        {heading.kind === "active" && (
+          <>
+            <h1 className="text-3xl font-extrabold sm:text-4xl">
+              Välkommen till {heading.titel}
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Skriv in ditt medlemsnummer så registrerar vi din närvaro.
+            </p>
+          </>
+        )}
+        {heading.kind === "upcoming" && (
+          <>
+            <h1 className="text-3xl font-extrabold sm:text-4xl">
+              Nästa medlemskväll: {heading.titel}
+            </h1>
+            <p className="mt-2 flex items-center gap-2 text-muted-foreground">
+              <CalendarDays className="h-4 w-4" />
+              <span className="mono">{formatSwedishDate(heading.datum)}</span>
+            </p>
+          </>
+        )}
+        {heading.kind === "none" && (
+          <>
+            <h1 className="text-3xl font-extrabold sm:text-4xl">
+              Inga event är inbokade
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Håll utkik — nya medlemskvällar publiceras här.
+            </p>
+          </>
+        )}
+        {heading.kind === "loading" && (
+          <div className="h-20" />
+        )}
+
 
         <form
           onSubmit={handleSubmit}
@@ -205,6 +271,13 @@ function CheckInPage() {
   );
 }
 
-function formatOrdinal(n: number) {
-  return `${n}:e`;
+function formatSwedishDate(iso: string) {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("sv-SE", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
+
