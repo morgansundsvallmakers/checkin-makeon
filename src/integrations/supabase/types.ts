@@ -55,6 +55,7 @@ export type Database = {
           aktiv: boolean
           datum: string
           id: string
+          senast_andrad: string
           skapad: string
           titel: string
         }
@@ -62,6 +63,7 @@ export type Database = {
           aktiv?: boolean
           datum: string
           id?: string
+          senast_andrad?: string
           skapad?: string
           titel: string
         }
@@ -69,6 +71,7 @@ export type Database = {
           aktiv?: boolean
           datum?: string
           id?: string
+          senast_andrad?: string
           skapad?: string
           titel?: string
         }
@@ -121,6 +124,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_toggle_events: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
