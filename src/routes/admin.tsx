@@ -365,6 +365,8 @@ function MemberModal({
 function EventsPanel() {
   const [events, setEvents] = useState<Event[] | null>(null);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<Event | null>(null);
+  const [deleting, setDeleting] = useState<Event | null>(null);
 
   async function load() {
     const { data } = await supabase
