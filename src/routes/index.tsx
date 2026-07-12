@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, LogIn, Loader2, AlertCircle } from "lucide-react";
+import { CheckCircle2, LogIn, Loader2, AlertCircle, CalendarDays } from "lucide-react";
+
 
 export const Route = createFileRoute("/")({
   component: CheckInPage,
