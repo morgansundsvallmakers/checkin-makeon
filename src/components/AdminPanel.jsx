@@ -10,10 +10,14 @@ export default function AdminPanel() {
     loadRoles();
   }, []);
 
-  async function loadUsers() {
-    const { data, error } = await supabase.auth.admin.listUsers();
-    if (!error) setUsers(data.users);
-  }
+import { listUsers } from "../server";
+
+async function loadUsers() {
+  const users = await listUsers();
+  setUsers(users);
+}
+
+  
 
   async function loadRoles() {
     const { data, error } = await supabase.from("user_roles").select("*");
