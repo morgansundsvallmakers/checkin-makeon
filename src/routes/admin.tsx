@@ -90,7 +90,7 @@ function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto w-[80%] px-4 py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <span className="mono text-xs uppercase tracking-widest text-accent">
