@@ -380,7 +380,10 @@ function EventsPanel() {
   }, []);
 
   async function toggleActive(ev: Event) {
-    await supabase.from("events").update({ aktiv: !ev.aktiv }).eq("id", ev.id);
+    await supabase
+      .from("events")
+      .update({ aktiv: !ev.aktiv, senast_andrad: new Date().toISOString() })
+      .eq("id", ev.id);
     load();
   }
 
