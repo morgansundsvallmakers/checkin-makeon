@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { listUsers } from "../server";
 
 export default function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -10,14 +11,10 @@ export default function AdminPanel() {
     loadRoles();
   }, []);
 
-import { listUsers } from "../server";
-
-async function loadUsers() {
-  const users = await listUsers();
-  setUsers(users);
-}
-
-  
+  async function loadUsers() {
+    const users = await listUsers();
+    setUsers(users);
+  }
 
   async function loadRoles() {
     const { data, error } = await supabase.from("user_roles").select("*");
