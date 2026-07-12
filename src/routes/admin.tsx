@@ -497,16 +497,18 @@ function EventsPanel() {
 }
 
 function EventModal({
+  event,
   onClose,
   onSaved,
 }: {
+  event?: Event;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const today = new Date().toISOString().slice(0, 10);
-  const [titel, setTitel] = useState("");
-  const [datum, setDatum] = useState(today);
-  const [aktiv, setAktiv] = useState(true);
+  const [titel, setTitel] = useState(event?.titel ?? "");
+  const [datum, setDatum] = useState(event?.datum ?? today);
+  const [aktiv, setAktiv] = useState(event?.aktiv ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -514,14 +516,16 @@ function EventModal({
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const { error } = await supabase.from("events").insert({ titel, datum, aktiv });
+    const { error } = event
+      ? await supabase.from("events").update({ titel, datum, aktiv }).eq("id", event.id)
+      : await supabase.from("events").insert({ titel, datum, aktiv });
     setSaving(false);
     if (error) setError(error.message);
     else onSaved();
   }
 
   return (
-    <Modal title="Ny medlemskväll" onClose={onClose}>
+    <Modal title={event ? "Redigera medlemskväll" : "Ny medlemskväll"} onClose={onClose}>
       <form onSubmit={save} className="space-y-3">
         <Field label="Titel">
           <input
