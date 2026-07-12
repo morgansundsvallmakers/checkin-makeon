@@ -8,6 +8,7 @@ import {
   LogOut,
   Pencil,
   Power,
+  Trash2,
   Calendar,
   Users,
 } from "lucide-react";
@@ -364,6 +365,8 @@ function MemberModal({
 function EventsPanel() {
   const [events, setEvents] = useState<Event[] | null>(null);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<Event | null>(null);
+  const [deleting, setDeleting] = useState<Event | null>(null);
 
   async function load() {
     const { data } = await supabase
@@ -438,12 +441,20 @@ function EventsPanel() {
                     </span>
                   </td>
                   <td className="px-4 py-2 text-right">
-                    <IconBtn
-                      onClick={() => toggleActive(ev)}
-                      label={ev.aktiv ? "Inaktivera" : "Aktivera"}
-                    >
-                      <Power className="h-4 w-4" />
-                    </IconBtn>
+                    <div className="flex justify-end gap-1">
+                      <IconBtn onClick={() => setEditing(ev)} label="Redigera">
+                        <Pencil className="h-4 w-4" />
+                      </IconBtn>
+                      <IconBtn
+                        onClick={() => toggleActive(ev)}
+                        label={ev.aktiv ? "Inaktivera" : "Aktivera"}
+                      >
+                        <Power className="h-4 w-4" />
+                      </IconBtn>
+                      <IconBtn onClick={() => setDeleting(ev)} label="Radera">
+                        <Trash2 className="h-4 w-4" />
+                      </IconBtn>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -461,21 +472,43 @@ function EventsPanel() {
           }}
         />
       )}
+      {editing && (
+        <EventModal
+          event={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+        />
+      )}
+      {deleting && (
+        <DeleteEventModal
+          event={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => {
+            setDeleting(null);
+            load();
+          }}
+        />
+      )}
     </section>
   );
 }
 
 function EventModal({
+  event,
   onClose,
   onSaved,
 }: {
+  event?: Event;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const today = new Date().toISOString().slice(0, 10);
-  const [titel, setTitel] = useState("");
-  const [datum, setDatum] = useState(today);
-  const [aktiv, setAktiv] = useState(true);
+  const [titel, setTitel] = useState(event?.titel ?? "");
+  const [datum, setDatum] = useState(event?.datum ?? today);
+  const [aktiv, setAktiv] = useState(event?.aktiv ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -483,14 +516,16 @@ function EventModal({
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const { error } = await supabase.from("events").insert({ titel, datum, aktiv });
+    const { error } = event
+      ? await supabase.from("events").update({ titel, datum, aktiv }).eq("id", event.id)
+      : await supabase.from("events").insert({ titel, datum, aktiv });
     setSaving(false);
     if (error) setError(error.message);
     else onSaved();
   }
 
   return (
-    <Modal title="Ny medlemskväll" onClose={onClose}>
+    <Modal title={event ? "Redigera medlemskväll" : "Ny medlemskväll"} onClose={onClose}>
       <form onSubmit={save} className="space-y-3">
         <Field label="Titel">
           <input
@@ -542,6 +577,69 @@ function EventModal({
     </Modal>
   );
 }
+
+function DeleteEventModal({
+  event,
+  onClose,
+  onDeleted,
+}: {
+  event: Event;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirm() {
+    setDeleting(true);
+    setError(null);
+    const { error: attErr } = await supabase
+      .from("attendance")
+      .delete()
+      .eq("event_id", event.id);
+    if (attErr) {
+      setError(attErr.message);
+      setDeleting(false);
+      return;
+    }
+    const { error: evErr } = await supabase.from("events").delete().eq("id", event.id);
+    setDeleting(false);
+    if (evErr) setError(evErr.message);
+    else onDeleted();
+  }
+
+  return (
+    <Modal title="Radera medlemskväll" onClose={onClose}>
+      <p className="text-sm">
+        Är du säker på att du vill radera <strong>{event.titel}</strong> ({event.datum})?
+        All närvaro för denna kväll raderas också. Detta går inte att ångra.
+      </p>
+      {error && (
+        <p className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      <div className="mt-4 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md border border-border px-4 py-2 text-sm hover:bg-secondary"
+        >
+          Avbryt
+        </button>
+        <button
+          type="button"
+          onClick={confirm}
+          disabled={deleting}
+          className="inline-flex items-center gap-2 rounded-md bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground hover:brightness-105 disabled:opacity-50"
+        >
+          {deleting && <Loader2 className="h-4 w-4 animate-spin" />} Radera
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 
 /* --------------------- EXPORT --------------------- */
 
