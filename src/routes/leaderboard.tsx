@@ -65,14 +65,14 @@ function LeaderboardPage() {
       }))
       .filter((r) => r.count > 0)
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+      .slice(0, 50);
   }, [members, att, range]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
       <div className="mb-6 flex items-center gap-2">
         <span className="mono text-xs uppercase tracking-widest text-accent">
-          // topp 10
+          // topp 50
         </span>
         <span className="h-px flex-1 bg-border" />
       </div>
