@@ -213,7 +213,7 @@ function CheckInPage() {
               value={medlemsnummer}
               onChange={(e) => setMedlemsnummer(e.target.value)}
               placeholder="t.ex. 15"
-              className="mono flex-3 rounded-md border border-input bg-background px-4 py-3 text-lg outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
+              className="mono w-48 rounded-md border border-input bg-background px-4 py-3 text-lg outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
             />
             <button
               type="submit"
