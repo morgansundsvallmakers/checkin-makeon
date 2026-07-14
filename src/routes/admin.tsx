@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { listAdmins, setAdminActive } from "@/lib/admins.functions";
+import { createAdminFn } from "@/lib/admins.functions";
 import {
   Loader2,
   Plus,
@@ -670,6 +671,9 @@ function AdminsPanel() {
   const [admins, setAdmins] = useState<AdminRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const createAdmin = useServerFn(createAdminFn);
+  const [newEmail, setNewEmail] = useState("");
+  const [creating, setCreating] = useState(false);
 
   async function refresh() {
     try {
@@ -694,7 +698,24 @@ function AdminsPanel() {
       setBusyId(null);
     }
   }
+  
+  async function addAdmin() {
+    if (!newEmail) return;
 
+    setCreating(true);
+    setError(null);
+
+    try {
+      await createAdmin({ data: { email: newEmail } });
+      setNewEmail("");
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Kunde inte skapa administratör.");
+    } finally {
+      setCreating(false);
+    }
+  }
+  
   return (
     <section className="rounded-2xl border border-border bg-card shadow-panel">
       <header className="border-b border-border p-4">
@@ -708,6 +729,28 @@ function AdminsPanel() {
           {error}
         </p>
       )}
+      <div className="border-b border-border p-4 flex items-center gap-3">
+        <input
+          type="email"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+          placeholder="E-postadress"
+          className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+        />
+        <button
+          onClick={addAdmin}
+          disabled={creating || !newEmail}
+          className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-secondary disabled:opacity-50"
+        >
+          {creating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
+          Lägg till admin
+        </button>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="mono text-xs uppercase tracking-widest text-muted-foreground">
