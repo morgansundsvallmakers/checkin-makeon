@@ -41,6 +41,7 @@ type Attendance = {
   incheckad: string;
 };
 
+// test rebuild
 function AdminPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
