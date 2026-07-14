@@ -675,21 +675,7 @@ function AdminsPanel() {
   const createAdmin = useServerFn(createAdminFn);
   const [newEmail, setNewEmail] = useState("");
   const [creating, setCreating] = useState(false);
-  const sendReset = useServerFn(sendResetLinkFn);
   const [sendingId, setSendingId] = useState<string | null>(null);
-
-  async function handleSendReset(a: AdminRow) {
-    setSendingId(a.id);
-    setError(null);
-  
-    try {
-      await sendReset({ data: { email: a.email } });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Kunde inte skicka lösenords‑länk.");
-    } finally {
-      setSendingId(null);
-    }
-  }
 
   async function refresh() {
     try {
@@ -821,20 +807,7 @@ function AdminsPanel() {
                         <Power className="h-3.5 w-3.5" />
                       )}
                       {a.aktiv ? "Inaktivera" : "Aktivera"}
-                    </button>
-                    <button
-                      onClick={() => handleSendReset(a)}
-                      disabled={sendingId === a.id}
-                      className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium transition hover:bg-secondary disabled:opacity-50"
-                    >
-                      {sendingId === a.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Mail className="h-3.5 w-3.5" />
-                      )}
-                      Skicka lösenords‑länk
-                    </button>
-
+                    </button>                    
                   </td>
                 </tr>
               ))
