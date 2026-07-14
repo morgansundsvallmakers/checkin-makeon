@@ -104,3 +104,17 @@ export const createAdminFn = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+// Trigger password reset email
+export const sendResetLinkFn = createServerFn("send-reset-link")
+  .handler(async ({ data }) => {
+    const { email } = data;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://checkin-makeon.lovable.app/auth/reset",
+    });
+
+    if (error) throw new Error(error.message);
+
+    return { ok: true };
+  });
