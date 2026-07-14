@@ -1,6 +1,35 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { serverFn } from "@tanstack/react-start";
+import { supabaseAdmin } from "@/integrations/supabase/admin";
+
+export const createAdminFn = serverFn(async ({ data }) => {
+  const email = data.email;
+
+  // 1. Skapa användare i auth
+  const { data: user, error } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password: crypto.randomUUID().slice(0, 12), // temporärt lösenord
+    email_confirm: false,
+  });
+
+  if (error) throw new Error(error.message);
+
+  // 2. Lägg till rollen i user_roles
+  const { error: roleError } = await supabaseAdmin
+    .from("user_roles")
+    .insert({
+      user_id: user.id,
+      role: "admin",
+      aktiv: false, // inaktiv tills du aktiverar
+    });
+
+  if (roleError) throw new Error(roleError.message);
+
+  return { ok: true };
+});
+
 
 export const listAdmins = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
