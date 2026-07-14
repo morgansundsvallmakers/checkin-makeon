@@ -4,33 +4,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { serverFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/admin";
 
-export const createAdminFn = serverFn(async ({ data }) => {
-  const email = data.email;
-
-  // 1. Skapa användare i auth
-  const { data: user, error } = await supabaseAdmin.auth.admin.createUser({
-    email,
-    password: crypto.randomUUID().slice(0, 12), // temporärt lösenord
-    email_confirm: false,
-  });
-
-  if (error) throw new Error(error.message);
-
-  // 2. Lägg till rollen i user_roles
-  const { error: roleError } = await supabaseAdmin
-    .from("user_roles")
-    .insert({
-      user_id: user.id,
-      role: "admin",
-      aktiv: false, // inaktiv tills du aktiverar
-    });
-
-  if (roleError) throw new Error(roleError.message);
-
-  return { ok: true };
-});
-
-
 export const listAdmins = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -87,5 +60,48 @@ export const setAdminActive = createServerFn({ method: "POST" })
       .update({ aktiv: data.aktiv })
       .eq("id", data.id);
     if (error) throw error;
+    return { ok: true };
+  });
+export const createAdminFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z.object({ email: z.string().email() }).parse(data)
+  )
+  .handler(async ({ data, context }) => {
+    // Kontrollera att den som anropar är admin
+    const { data: myRoles } = await context.supabase
+      .from("user_roles")
+      .select("role,aktiv")
+      .eq("user_id", context.userId);
+
+    const isAdmin = (myRoles ?? []).some(
+      (r) => r.role === "admin" && r.aktiv === true
+    );
+
+    if (!isAdmin) throw new Response("Forbidden", { status: 403 });
+
+    // Importera supabaseAdmin
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Skapa användaren
+    const { data: user, error } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password: crypto.randomUUID().slice(0, 12),
+      email_confirm: false,
+    });
+
+    if (error) throw error;
+
+    // 2. Lägg till rollen
+    const { error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .insert({
+        user_id: user.id,
+        role: "admin",
+        aktiv: false, // inaktiv tills aktivering
+      });
+
+    if (roleError) throw roleError;
+
     return { ok: true };
   });
