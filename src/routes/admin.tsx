@@ -44,7 +44,7 @@ function AdminPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"members" | "events" | "export">("members");
+  const [tab, setTab] = useState<"members" | "events" | "admins" | "export">("members");
 
   useEffect(() => {
     (async () => {
