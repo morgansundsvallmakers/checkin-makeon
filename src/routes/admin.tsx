@@ -117,6 +117,9 @@ function AdminPage() {
         <TabButton active={tab === "events"} onClick={() => setTab("events")}>
           <Calendar className="h-4 w-4" /> Medlemskvällar
         </TabButton>
+        <TabButton active={tab === "admins"} onClick={() => setTab("admins")}>
+          <ShieldCheck className="h-4 w-4" /> Administratörer
+        </TabButton>
         <TabButton active={tab === "export"} onClick={() => setTab("export")}>
           <Download className="h-4 w-4" /> Export
         </TabButton>
@@ -124,10 +127,12 @@ function AdminPage() {
 
       {tab === "members" && <MembersPanel />}
       {tab === "events" && <EventsPanel />}
+      {tab === "admins" && <AdminsPanel />}
       {tab === "export" && <ExportPanel />}
     </div>
   );
 }
+
 
 function TabButton({
   active,
