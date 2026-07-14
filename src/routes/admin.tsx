@@ -675,7 +675,6 @@ function AdminsPanel() {
   const createAdmin = useServerFn(createAdminFn);
   const [newEmail, setNewEmail] = useState("");
   const [creating, setCreating] = useState(false);
-  const [sendingId, setSendingId] = useState<string | null>(null);
 
   async function refresh() {
     try {
