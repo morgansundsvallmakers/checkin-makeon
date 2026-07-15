@@ -6,7 +6,7 @@ import { Trophy, Medal } from "lucide-react";
 export const Route = createFileRoute("/leaderboard")({
   head: () => ({
     meta: [
-      { title: "Leaderboard — Makerspace" },
+      { title: "Topplista — Makerspace" },
       {
         name: "description",
         content: "Topplistor för medlemmarnas närvaro — månad, år och totalt.",
@@ -78,7 +78,7 @@ function LeaderboardPage() {
       </div>
       <div className="mb-6 flex items-center gap-3">
         <Trophy className="h-7 w-7 text-accent" />
-        <h1 className="text-3xl font-extrabold sm:text-4xl">Leaderboard</h1>
+        <h1 className="text-3xl font-extrabold sm:text-4xl">Topplista</h1>
       </div>
 
       <div className="mb-6 inline-flex flex-wrap rounded-lg border border-border bg-card p-1 shadow-sm">
