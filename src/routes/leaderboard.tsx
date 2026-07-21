@@ -6,7 +6,7 @@ import { Trophy, Medal } from "lucide-react";
 export const Route = createFileRoute("/leaderboard")({
   head: () => ({
     meta: [
-      { title: "Topplista — Makerspace" },
+      { title: "Topplista — Sundsvall Makers" },
       {
         name: "description",
         content: "Topplistor för medlemmarnas närvaro — månad, år och totalt.",
