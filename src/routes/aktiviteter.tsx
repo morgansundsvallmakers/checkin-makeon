@@ -50,7 +50,7 @@ function UpcomingActivitiesPage() {
 
         <h1 className="text-3xl font-extrabold sm:text-4xl">Kommande aktiviteter</h1>
         <p className="mt-2 text-muted-foreground">
-          Här ser du vad som är planerat närmast framöver på MakeOn.
+          Här ser du vad som är planerat närmast framöver på Sundsvall Makers makerspace.
         </p>
 
         <section className="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-panel">
