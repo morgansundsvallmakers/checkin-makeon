@@ -146,7 +146,7 @@ function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <Link to="/" className="flex items-center gap-2 group">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground shadow-sm">
             <Wrench className="h-5 w-5" strokeWidth={2.5} />
@@ -158,8 +158,9 @@ function SiteHeader() {
             </span>
           </span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex w-full flex-wrap items-center justify-center gap-1 text-xs sm:w-auto sm:text-sm">
           <NavLink to="/">Incheckning</NavLink>
+          <NavLink to="/aktiviteter">Kommande aktiviteter</NavLink>
           <NavLink to="/leaderboard">Topplista</NavLink>
           {signedIn ? (
             <NavLink to="/admin">Admin</NavLink>
