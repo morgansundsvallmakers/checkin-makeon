@@ -3,7 +3,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { listAdmins, setAdminActive } from "@/lib/admins.functions";
-import { createAdminFn } from "@/lib/admins.functions";
 import {
   Loader2,
   Plus,
@@ -57,9 +56,11 @@ function AdminPage() {
       }
       const { data: roles } = await supabase
         .from("user_roles")
-        .select("role")
+        .select("role,aktiv")
         .eq("user_id", data.session.user.id);
-      const admin = (roles ?? []).some((r) => r.role === "admin");
+      const admin = (roles ?? []).some(
+        (r) => r.role === "admin" && r.aktiv === true,
+      );
       setIsAdmin(admin);
       setReady(true);
     })();
@@ -83,7 +84,8 @@ function AdminPage() {
       <div className="mx-auto max-w-md px-4 py-14 text-center">
         <h1 className="text-xl font-bold">Ingen adminbehörighet</h1>
         <p className="mt-2 text-muted-foreground">
-          Ditt konto saknar adminroll. Kontakta en befintlig admin.
+          Ditt konto är inte aktiverat som administratör. Kontakta en befintlig
+          aktiv admin.
         </p>
         <button
           onClick={signOut}
@@ -672,9 +674,7 @@ function AdminsPanel() {
   const [admins, setAdmins] = useState<AdminRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const createAdmin = useServerFn(createAdminFn);
-  const [newEmail, setNewEmail] = useState("");
-  const [creating, setCreating] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   async function refresh() {
     try {
@@ -686,6 +686,9 @@ function AdminsPanel() {
   }
   useEffect(() => {
     refresh();
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
   async function toggle(a: AdminRow) {
@@ -700,29 +703,12 @@ function AdminsPanel() {
     }
   }
   
-  async function addAdmin() {
-    if (!newEmail) return;
-
-    setCreating(true);
-    setError(null);
-
-    try {
-      await createAdmin({ data: { email: newEmail } });
-      setNewEmail("");
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Kunde inte skapa administratör.");
-    } finally {
-      setCreating(false);
-    }
-  }
-  
   return (
     <section className="rounded-2xl border border-border bg-card shadow-panel">
       <header className="border-b border-border p-4">
         <h2 className="font-semibold">Administratörer</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Endast aktiva administratörer har åtkomst till adminpanelen. Inaktivera för att tillfälligt återkalla åtkomst.
+          Nya konton registreras på inloggningssidan och visas här som inaktiva tills en aktiv administratör godkänner dem. Du kan inte inaktivera ditt eget konto eller den sista aktiva administratören.
         </p>
       </header>
       {error && (
@@ -730,28 +716,6 @@ function AdminsPanel() {
           {error}
         </p>
       )}
-      <div className="border-b border-border p-4 flex items-center gap-3">
-        <input
-          type="email"
-          value={newEmail}
-          onChange={(e) => setNewEmail(e.target.value)}
-          placeholder="E-postadress"
-          className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
-        />
-        <button
-          onClick={addAdmin}
-          disabled={creating || !newEmail}
-          className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-secondary disabled:opacity-50"
-        >
-          {creating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4" />
-          )}
-          Lägg till admin
-        </button>
-      </div>
-
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -797,7 +761,7 @@ function AdminsPanel() {
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={() => toggle(a)}
-                      disabled={busyId === a.id}
+                      disabled={busyId === a.id || a.user_id === currentUserId}
                       className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium transition hover:bg-secondary disabled:opacity-50"
                     >
                       {busyId === a.id ? (
@@ -805,7 +769,11 @@ function AdminsPanel() {
                       ) : (
                         <Power className="h-3.5 w-3.5" />
                       )}
-                      {a.aktiv ? "Inaktivera" : "Aktivera"}
+                      {a.user_id === currentUserId
+                        ? "Du själv"
+                        : a.aktiv
+                          ? "Inaktivera"
+                          : "Aktivera"}
                     </button>                    
                   </td>
                 </tr>

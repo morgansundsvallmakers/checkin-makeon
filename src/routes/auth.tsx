@@ -46,7 +46,7 @@ function AuthPage() {
         });
         if (error) throw error;
         setInfo(
-          "Konto skapat. Om e-postbekräftelse krävs, kolla din inbox. Annars kan du logga in direkt.",
+          "Konto skapat. Bekräfta din e-post om det krävs. En befintlig aktiv administratör måste sedan aktivera kontot innan adminpanelen kan användas.",
         );
         setMode("signin");
       }
@@ -126,7 +126,7 @@ function AuthPage() {
           className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground"
         >
           {mode === "signin"
-            ? "Första gången? Skapa Admin-konto"
+            ? "Ny administratör? Registrera konto"
             : "Har du redan konto? Logga in"}
         </button>
         <p className="mono mt-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground">

@@ -135,6 +135,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      set_admin_active: {
+        Args: { _aktiv: boolean; _role_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin"
