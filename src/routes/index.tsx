@@ -1,58 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, LogIn, Loader2, AlertCircle, CalendarDays } from "lucide-react";
-
+import { CheckCircle2, LogIn, Loader2, AlertCircle } from "lucide-react";
+import {
+  countCheckInsOnSwedishDate,
+  getSingleActivityTitle,
+  getSwedishCalendarDate,
+} from "@/lib/current-activity";
 
 export const Route = createFileRoute("/")({
   component: CheckInPage,
 });
 
 type Result =
-  | { kind: "ok"; namn: string; count: number; eventTitel: string; rank: number; totalMembers: number }
-  | { kind: "already"; namn: string; count: number; eventTitel: string; rank: number; totalMembers: number }
+  | { kind: "ok"; namn: string; count: number; eventTitel: string; todayNumber: number }
+  | { kind: "already"; namn: string; count: number; eventTitel: string; todayNumber: number }
   | { kind: "error"; message: string };
 
 function CheckInPage() {
   const [medlemsnummer, setMedlemsnummer] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
-  const [heading, setHeading] = useState<
-    | { kind: "active"; titel: string; datum: string }
-    | { kind: "upcoming"; titel: string; datum: string }
-    | { kind: "none" }
-    | { kind: "loading" }
-  >({ kind: "loading" });
+  const [activityTitle, setActivityTitle] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const { data: active } = await supabase
+      const today = getSwedishCalendarDate();
+      const { data: todaysActivities } = await supabase
         .from("events")
-        .select("titel, datum")
-        .eq("aktiv", true)
-        .order("datum", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (active) {
-        setHeading({ kind: "active", titel: active.titel, datum: active.datum });
-        return;
-      }
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: upcoming } = await supabase
-        .from("events")
-        .select("titel, datum")
-        .gt("datum", today)
-        .order("datum", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (upcoming) {
-        setHeading({ kind: "upcoming", titel: upcoming.titel, datum: upcoming.datum });
-      } else {
-        setHeading({ kind: "none" });
-      }
+        .select("titel")
+        .eq("datum", today);
+
+      setActivityTitle(getSingleActivityTitle(todaysActivities));
     })();
   }, []);
-
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -113,28 +94,19 @@ function CheckInPage() {
       if (cErr) throw cErr;
       const myCount = count ?? 0;
 
-      // Beräkna placering på leaderboard
-      const { data: allAtt, error: laErr } = await supabase
+      // Räkna alla dagens incheckningar, oavsett aktivitet
+      const { data: allAtt, error: todayErr } = await supabase
         .from("attendance")
-        .select("member_id");
-      if (laErr) throw laErr;
-      const counts = new Map<string, number>();
-      for (const a of allAtt ?? []) {
-        counts.set(a.member_id, (counts.get(a.member_id) ?? 0) + 1);
-      }
-      const totalMembers = counts.size;
-      let rank = 1;
-      for (const [mid, c] of counts) {
-        if (mid !== member.id && c > myCount) rank++;
-      }
+        .select("incheckad");
+      if (todayErr) throw todayErr;
+      const todayNumber = countCheckInsOnSwedishDate(allAtt, getSwedishCalendarDate());
 
       setResult({
         kind: already ? "already" : "ok",
         namn: member.namn,
         count: myCount,
         eventTitel: event.titel,
-        rank,
-        totalMembers,
+        todayNumber,
       });
       setMedlemsnummer("");
     } catch (err) {
@@ -157,41 +129,12 @@ function CheckInPage() {
           </span>
           <span className="h-px flex-1 bg-border" />
         </div>
-        {heading.kind === "active" && (
-          <>
-            <h1 className="text-3xl font-extrabold sm:text-4xl">
-              Välkommen till {heading.titel}
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              Skriv in ditt medlemsnummer så registrerar vi din närvaro.
-            </p>
-          </>
-        )}
-        {heading.kind === "upcoming" && (
-          <>
-            <h1 className="text-3xl font-extrabold sm:text-4xl">
-              Nästa medlemskväll: {heading.titel}
-            </h1>
-            <p className="mt-2 flex items-center gap-2 text-muted-foreground">
-              <CalendarDays className="h-4 w-4" />
-              <span className="mono">{formatSwedishDate(heading.datum)}</span>
-            </p>
-          </>
-        )}
-        {heading.kind === "none" && (
-          <>
-            <h1 className="text-3xl font-extrabold sm:text-4xl">
-              Inga event är inbokade
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              Håll utkik — nya medlemskvällar publiceras här.
-            </p>
-          </>
-        )}
-        {heading.kind === "loading" && (
-          <div className="h-20" />
-        )}
-
+        <h1 className="text-3xl font-extrabold sm:text-4xl">
+          Välkommen till {activityTitle ?? "MakeOn"}
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          Skriv in ditt medlemsnummer så registrerar vi din närvaro.
+        </p>
 
         <form
           onSubmit={handleSubmit}
@@ -246,10 +189,9 @@ function CheckInPage() {
                       medlemskvällar.
                     </p>
                     <p className="text-base text-foreground">
-                      Du ligger på plats{" "}
-                      <span className="mono font-bold">{result.rank}</span> av{" "}
-                      <span className="mono font-bold">{result.totalMembers}</span>{" "}
-                      medlemmar.
+                      Du är nummer{" "}
+                      <span className="mono font-bold">{result.todayNumber}</span>{" "}
+                      att checka in idag.
                     </p>
                     <p className="mono pt-1 text-xs uppercase tracking-widest text-muted-foreground">
                       {result.eventTitel}
@@ -269,14 +211,4 @@ function CheckInPage() {
       </div>
     </div>
   );
-}
-
-function formatSwedishDate(iso: string) {
-  const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString("sv-SE", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 }
