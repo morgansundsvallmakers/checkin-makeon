@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy, Medal } from "lucide-react";
+import { formatFixItStars, getFixItStarCounts } from "@/lib/fixit-stars";
+import { getSwedishCalendarDate } from "@/lib/current-activity";
 
 export const Route = createFileRoute("/leaderboard")({
   head: () => ({
@@ -17,25 +19,29 @@ export const Route = createFileRoute("/leaderboard")({
 });
 
 type Member = { id: string; namn: string; medlemsnummer: string };
-type Att = { member_id: string; incheckad: string };
+type Att = { member_id: string; event_id: string; incheckad: string };
+type Event = { id: string; titel: string; datum: string };
 type Row = { member_id: string; namn: string; medlemsnummer: string; count: number };
 type Range = "month" | "year" | "total";
 
 function LeaderboardPage() {
   const [members, setMembers] = useState<Member[] | null>(null);
   const [att, setAtt] = useState<Att[] | null>(null);
+  const [events, setEvents] = useState<Event[] | null>(null);
   const [range, setRange] = useState<Range>("month");
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [{ data: m }, { data: a }] = await Promise.all([
+      const [{ data: m }, { data: a }, { data: e }] = await Promise.all([
         supabase.from("members").select("id, namn, medlemsnummer"),
-        supabase.from("attendance").select("member_id, incheckad"),
+        supabase.from("attendance").select("member_id, event_id, incheckad"),
+        supabase.from("events").select("id, titel, datum"),
       ]);
       if (!alive) return;
       setMembers((m as Member[]) ?? []);
       setAtt((a as Att[]) ?? []);
+      setEvents((e as Event[]) ?? []);
     })();
     return () => {
       alive = false;
@@ -67,6 +73,11 @@ function LeaderboardPage() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 50);
   }, [members, att, range]);
+
+  const fixItStarCounts = useMemo(
+    () => getFixItStarCounts(events ?? [], att ?? [], getSwedishCalendarDate()),
+    [events, att],
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
@@ -115,7 +126,18 @@ function LeaderboardPage() {
                     <RankBadge rank={rank} />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate font-semibold">{r.namn}</p>
+                    <p className="flex min-w-0 items-center gap-1 font-semibold">
+                      <span className="truncate">{r.namn}</span>
+                      {(fixItStarCounts.get(r.member_id) ?? 0) > 0 && (
+                        <span
+                          className="shrink-0"
+                          aria-label={`${fixItStarCounts.get(r.member_id)} FixIt-stjärnor`}
+                          title={`${fixItStarCounts.get(r.member_id)} FixIt-stjärnor`}
+                        >
+                          {formatFixItStars(fixItStarCounts.get(r.member_id) ?? 0)}
+                        </span>
+                      )}
+                    </p>
                     <p className="mono text-xs text-muted-foreground">
                       #{r.medlemsnummer}
                     </p>
