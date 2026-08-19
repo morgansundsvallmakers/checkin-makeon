@@ -128,6 +128,17 @@ export type Database = {
     }
     Functions: {
       auto_toggle_events: { Args: never; Returns: undefined }
+      check_in_member: {
+        Args: { p_medlemsnummer: string }
+        Returns: {
+          display_name: string
+          event_title: string
+          message: string
+          status: string
+          today_number: number
+          visit_count: number
+        }[]
+      }
       get_public_leaderboard: {
         Args: { p_range?: string }
         Returns: {
