@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, LogIn, Loader2, AlertCircle } from "lucide-react";
 import {
-  countCheckInsOnSwedishDate,
   getSingleActivityTitle,
   getSwedishCalendarDate,
 } from "@/lib/current-activity";
@@ -42,71 +41,36 @@ function CheckInPage() {
     setLoading(true);
     setResult(null);
     try {
-      // Hämta medlem
-      const { data: member, error: mErr } = await supabase
-        .from("members")
-        .select("id, namn, aktiv")
-        .eq("medlemsnummer", nummer)
-        .maybeSingle();
-      if (mErr) throw mErr;
-      if (!member) {
-        setResult({ kind: "error", message: "Ingen medlem med det medlemsnumret hittades." });
+      const { data, error } = await supabase.rpc("check_in_member", {
+        p_medlemsnummer: nummer,
+      });
+      if (error) throw error;
+
+      const response = data?.[0];
+      if (!response) {
+        setResult({ kind: "error", message: "Något gick fel." });
         return;
       }
-      if (!member.aktiv) {
+
+      if (response.status === "error") {
         setResult({
           kind: "error",
-          message: "Medlemskapet är inte aktivt. Kontakta admin.",
+          message: response.message ?? "Något gick fel.",
         });
         return;
       }
 
-      // Hämta senaste aktiva medlemskväll
-      const { data: event, error: eErr } = await supabase
-        .from("events")
-        .select("id, titel, datum")
-        .eq("aktiv", true)
-        .order("datum", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (eErr) throw eErr;
-      if (!event) {
-        setResult({
-          kind: "error",
-          message: "Ingen aktiv medlemskväll just nu.",
-        });
+      if (response.status !== "ok" && response.status !== "already") {
+        setResult({ kind: "error", message: "Något gick fel." });
         return;
       }
-
-      // Försök checka in
-      const { error: aErr } = await supabase
-        .from("attendance")
-        .insert({ member_id: member.id, event_id: event.id });
-
-      const already = aErr?.code === "23505"; // unique violation
-      if (aErr && !already) throw aErr;
-
-      // Räkna totalt antal besök för medlemmen
-      const { count, error: cErr } = await supabase
-        .from("attendance")
-        .select("*", { count: "exact", head: true })
-        .eq("member_id", member.id);
-      if (cErr) throw cErr;
-      const myCount = count ?? 0;
-
-      // Räkna alla dagens incheckningar, oavsett aktivitet
-      const { data: allAtt, error: todayErr } = await supabase
-        .from("attendance")
-        .select("incheckad");
-      if (todayErr) throw todayErr;
-      const todayNumber = countCheckInsOnSwedishDate(allAtt, getSwedishCalendarDate());
 
       setResult({
-        kind: already ? "already" : "ok",
-        namn: member.namn,
-        count: myCount,
-        eventTitel: event.titel,
-        todayNumber,
+        kind: response.status,
+        namn: response.display_name,
+        count: response.visit_count,
+        eventTitel: response.event_title,
+        todayNumber: response.today_number,
       });
       setMedlemsnummer("");
     } catch (err) {
