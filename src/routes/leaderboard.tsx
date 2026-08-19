@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy, Medal } from "lucide-react";
-import { formatFixItStars, getFixItStarCounts } from "@/lib/fixit-stars";
-import { getSwedishCalendarDate } from "@/lib/current-activity";
+import { formatFixItStars } from "@/lib/fixit-stars";
 
 export const Route = createFileRoute("/leaderboard")({
   head: () => ({
@@ -18,66 +17,37 @@ export const Route = createFileRoute("/leaderboard")({
   component: LeaderboardPage,
 });
 
-type Member = { id: string; namn: string; medlemsnummer: string };
-type Att = { member_id: string; event_id: string; incheckad: string };
-type Event = { id: string; titel: string; datum: string };
-type Row = { member_id: string; namn: string; medlemsnummer: string; count: number };
+type Row = {
+  rank: number;
+  display_name: string;
+  visit_count: number;
+  fixit_stars: number;
+};
 type Range = "month" | "year" | "total";
 
 function LeaderboardPage() {
-  const [members, setMembers] = useState<Member[] | null>(null);
-  const [att, setAtt] = useState<Att[] | null>(null);
-  const [events, setEvents] = useState<Event[] | null>(null);
+  const [rows, setRows] = useState<Row[] | null>(null);
   const [range, setRange] = useState<Range>("month");
 
   useEffect(() => {
     let alive = true;
+    setRows(null);
     (async () => {
-      const [{ data: m }, { data: a }, { data: e }] = await Promise.all([
-        supabase.from("members").select("id, namn, medlemsnummer"),
-        supabase.from("attendance").select("member_id, event_id, incheckad"),
-        supabase.from("events").select("id, titel, datum"),
-      ]);
+      const { data, error } = await supabase.rpc("get_public_leaderboard", {
+        p_range: range,
+      });
       if (!alive) return;
-      setMembers((m as Member[]) ?? []);
-      setAtt((a as Att[]) ?? []);
-      setEvents((e as Event[]) ?? []);
+      if (error) {
+        console.error("Kunde inte hämta topplistan", error);
+        setRows([]);
+        return;
+      }
+      setRows(data ?? []);
     })();
     return () => {
       alive = false;
     };
-  }, []);
-
-  const rows: Row[] | null = useMemo(() => {
-    if (!members || !att) return null;
-    const now = new Date();
-    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startYear = new Date(now.getFullYear(), 0, 1);
-    const filtered = att.filter((a) => {
-      if (range === "total") return true;
-      const d = new Date(a.incheckad);
-      return d >= (range === "month" ? startMonth : startYear);
-    });
-    const counts = new Map<string, number>();
-    for (const a of filtered) {
-      counts.set(a.member_id, (counts.get(a.member_id) ?? 0) + 1);
-    }
-    return members
-      .map((m) => ({
-        member_id: m.id,
-        namn: m.namn,
-        medlemsnummer: m.medlemsnummer,
-        count: counts.get(m.id) ?? 0,
-      }))
-      .filter((r) => r.count > 0)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 50);
-  }, [members, att, range]);
-
-  const fixItStarCounts = useMemo(
-    () => getFixItStarCounts(events ?? [], att ?? [], getSwedishCalendarDate()),
-    [events, att],
-  );
+  }, [range]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
@@ -115,44 +85,38 @@ function LeaderboardPage() {
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {rows.map((r, i) => {
-              const rank = i + 1;
-              return (
-                <li
-                  key={r.member_id}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 sm:px-6"
-                >
-                  <div className="flex items-center justify-center">
-                    <RankBadge rank={rank} />
+            {rows.map((r) => (
+              <li
+                key={`${r.rank}-${r.display_name}`}
+                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 sm:px-6"
+              >
+                <div className="flex items-center justify-center">
+                  <RankBadge rank={r.rank} />
+                </div>
+                <div className="min-w-0">
+                  <p className="flex min-w-0 items-center gap-1 font-semibold">
+                    <span className="truncate">{r.display_name}</span>
+                    {r.fixit_stars > 0 && (
+                      <span
+                        className="shrink-0"
+                        aria-label={`${r.fixit_stars} FixIt-stjärnor`}
+                        title={`${r.fixit_stars} FixIt-stjärnor`}
+                      >
+                        {formatFixItStars(r.fixit_stars)}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="mono text-2xl font-bold tabular-nums">
+                    {r.visit_count}
                   </div>
-                  <div className="min-w-0">
-                    <p className="flex min-w-0 items-center gap-1 font-semibold">
-                      <span className="truncate">{r.namn}</span>
-                      {(fixItStarCounts.get(r.member_id) ?? 0) > 0 && (
-                        <span
-                          className="shrink-0"
-                          aria-label={`${fixItStarCounts.get(r.member_id)} FixIt-stjärnor`}
-                          title={`${fixItStarCounts.get(r.member_id)} FixIt-stjärnor`}
-                        >
-                          {formatFixItStars(fixItStarCounts.get(r.member_id) ?? 0)}
-                        </span>
-                      )}
-                    </p>
-                    <p className="mono text-xs text-muted-foreground">
-                      #{r.medlemsnummer}
-                    </p>
+                  <div className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    besök
                   </div>
-                  <div className="text-right">
-                    <div className="mono text-2xl font-bold tabular-nums">
-                      {r.count}
-                    </div>
-                    <div className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      besök
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>
