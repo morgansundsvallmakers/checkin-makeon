@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   countCheckInsOnSwedishDate,
+  getHomeActivityState,
   getSingleActivityTitle,
   getSwedishCalendarDate,
 } from "../src/lib/current-activity.ts";
@@ -18,6 +19,52 @@ test("uses the activity title when exactly one activity is today", () => {
 
 test("uses the neutral heading when several activities are today", () => {
   assert.equal(getSingleActivityTitle([{ titel: "FixIt-Day" }, { titel: "Medlemskväll" }]), null);
+});
+
+test("home state enables check-in when one activity is scheduled today", () => {
+  assert.deepEqual(
+    getHomeActivityState(
+      [
+        { titel: "FixIt-Day", datum: "2026-08-21" },
+        { titel: "MakeOn", datum: "2026-08-25" },
+      ],
+      "2026-08-21",
+    ),
+    { kind: "today", titel: "FixIt-Day" },
+  );
+});
+
+test("home state keeps a neutral title when several activities are scheduled today", () => {
+  assert.deepEqual(
+    getHomeActivityState(
+      [
+        { titel: "FixIt-Day", datum: "2026-08-21" },
+        { titel: "Workshop", datum: "2026-08-21" },
+      ],
+      "2026-08-21",
+    ),
+    { kind: "today", titel: null },
+  );
+});
+
+test("home state shows the nearest future activity when today is empty", () => {
+  assert.deepEqual(
+    getHomeActivityState(
+      [
+        { titel: "MakeOn senare", datum: "2026-09-01" },
+        { titel: "MakeOn nästa", datum: "2026-08-25" },
+      ],
+      "2026-08-21",
+    ),
+    { kind: "upcoming", titel: "MakeOn nästa", datum: "2026-08-25" },
+  );
+});
+
+test("home state reports none when there are no activities today or later", () => {
+  assert.deepEqual(
+    getHomeActivityState([{ titel: "Tidigare", datum: "2026-08-20" }], "2026-08-21"),
+    { kind: "none" },
+  );
 });
 
 test("today follows the Swedish calendar day around UTC midnight", () => {
