@@ -21,12 +21,12 @@ test("uses the neutral heading when several activities are today", () => {
   assert.equal(getSingleActivityTitle([{ titel: "FixIt-Day" }, { titel: "Medlemskväll" }]), null);
 });
 
-test("home state enables check-in when one activity is scheduled today", () => {
+test("home state enables check-in when one active activity is scheduled today", () => {
   assert.deepEqual(
     getHomeActivityState(
       [
-        { titel: "FixIt-Day", datum: "2026-08-21" },
-        { titel: "MakeOn", datum: "2026-08-25" },
+        { titel: "FixIt-Day", datum: "2026-08-21", aktiv: true },
+        { titel: "MakeOn", datum: "2026-08-25", aktiv: false },
       ],
       "2026-08-21",
     ),
@@ -34,12 +34,12 @@ test("home state enables check-in when one activity is scheduled today", () => {
   );
 });
 
-test("home state keeps a neutral title when several activities are scheduled today", () => {
+test("home state keeps a neutral title when several active activities are scheduled today", () => {
   assert.deepEqual(
     getHomeActivityState(
       [
-        { titel: "FixIt-Day", datum: "2026-08-21" },
-        { titel: "Workshop", datum: "2026-08-21" },
+        { titel: "FixIt-Day", datum: "2026-08-21", aktiv: true },
+        { titel: "Workshop", datum: "2026-08-21", aktiv: true },
       ],
       "2026-08-21",
     ),
@@ -47,12 +47,22 @@ test("home state keeps a neutral title when several activities are scheduled tod
   );
 });
 
+test("inactive activity today is shown as planned but does not enable check-in", () => {
+  assert.deepEqual(
+    getHomeActivityState(
+      [{ titel: "TEST – mobil layout", datum: "2026-08-21", aktiv: false }],
+      "2026-08-21",
+    ),
+    { kind: "upcoming", titel: "TEST – mobil layout", datum: "2026-08-21" },
+  );
+});
+
 test("home state shows the nearest future activity when today is empty", () => {
   assert.deepEqual(
     getHomeActivityState(
       [
-        { titel: "MakeOn senare", datum: "2026-09-01" },
-        { titel: "MakeOn nästa", datum: "2026-08-25" },
+        { titel: "MakeOn senare", datum: "2026-09-01", aktiv: false },
+        { titel: "MakeOn nästa", datum: "2026-08-25", aktiv: false },
       ],
       "2026-08-21",
     ),
@@ -62,7 +72,10 @@ test("home state shows the nearest future activity when today is empty", () => {
 
 test("home state reports none when there are no activities today or later", () => {
   assert.deepEqual(
-    getHomeActivityState([{ titel: "Tidigare", datum: "2026-08-20" }], "2026-08-21"),
+    getHomeActivityState(
+      [{ titel: "Tidigare", datum: "2026-08-20", aktiv: false }],
+      "2026-08-21",
+    ),
     { kind: "none" },
   );
 });
