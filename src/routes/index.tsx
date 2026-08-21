@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, LogIn, Loader2, AlertCircle } from "lucide-react";
+import { AlertCircle, CalendarDays, CheckCircle2, Loader2, LogIn } from "lucide-react";
 import {
-  getSingleActivityTitle,
+  getHomeActivityState,
   getSwedishCalendarDate,
+  type HomeActivityState,
 } from "@/lib/current-activity";
 
 export const Route = createFileRoute("/")({
@@ -16,21 +17,30 @@ type Result =
   | { kind: "already"; namn: string; count: number; eventTitel: string; todayNumber: number }
   | { kind: "error"; message: string };
 
+type HomeState = HomeActivityState | { kind: "loading" } | { kind: "error" };
+
 function CheckInPage() {
   const [medlemsnummer, setMedlemsnummer] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
-  const [activityTitle, setActivityTitle] = useState<string | null>(null);
+  const [homeState, setHomeState] = useState<HomeState>({ kind: "loading" });
 
   useEffect(() => {
     (async () => {
       const today = getSwedishCalendarDate();
-      const { data: todaysActivities } = await supabase
+      const { data: activities, error } = await supabase
         .from("events")
-        .select("titel")
-        .eq("datum", today);
+        .select("titel, datum")
+        .gte("datum", today)
+        .order("datum", { ascending: true });
 
-      setActivityTitle(getSingleActivityTitle(todaysActivities));
+      if (error) {
+        console.error("Kunde inte hämta aktiviteter", error);
+        setHomeState({ kind: "error" });
+        return;
+      }
+
+      setHomeState(getHomeActivityState(activities, today));
     })();
   }, []);
 
@@ -93,49 +103,90 @@ function CheckInPage() {
           </span>
           <span className="h-px flex-1 bg-border" />
         </div>
-        <h1 className="text-3xl font-extrabold sm:text-4xl">
-          Välkommen till {activityTitle ?? "MakeOn"}
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Skriv in ditt medlemsnummer så registrerar vi din närvaro.
-        </p>
 
-        <form
-          onSubmit={handleSubmit}
-          className="mt-8 rounded-2xl border border-border bg-card p-5 shadow-panel sm:p-6"
-        >
-          <label
-            htmlFor="medlemsnummer"
-            className="mono text-xs uppercase tracking-widest text-muted-foreground"
+        {homeState.kind === "loading" && <div className="h-20" aria-busy="true" />}
+
+        {homeState.kind === "today" && (
+          <>
+            <h1 className="text-3xl font-extrabold sm:text-4xl">
+              Välkommen till {homeState.titel ?? "MakeOn"}
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Skriv in ditt medlemsnummer så registrerar vi din närvaro.
+            </p>
+          </>
+        )}
+
+        {homeState.kind === "upcoming" && (
+          <>
+            <h1 className="text-3xl font-extrabold sm:text-4xl">
+              Nästa aktivitet: {homeState.titel}
+            </h1>
+            <p className="mt-2 flex items-center gap-2 text-muted-foreground">
+              <CalendarDays className="h-4 w-4 shrink-0" />
+              <span className="mono">{formatSwedishDate(homeState.datum)}</span>
+            </p>
+          </>
+        )}
+
+        {homeState.kind === "none" && (
+          <>
+            <h1 className="text-3xl font-extrabold sm:text-4xl">
+              Inga aktiviteter är inbokade
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Håll utkik — nya aktiviteter publiceras här.
+            </p>
+          </>
+        )}
+
+        {homeState.kind === "error" && (
+          <>
+            <h1 className="text-3xl font-extrabold sm:text-4xl">
+              Aktiviteterna kunde inte hämtas
+            </h1>
+            <p className="mt-2 text-muted-foreground">Försök igen om en stund.</p>
+          </>
+        )}
+
+        {homeState.kind === "today" && (
+          <form
+            onSubmit={handleSubmit}
+            className="mt-8 rounded-2xl border border-border bg-card p-4 shadow-panel sm:p-6"
           >
-            Medlemsnummer
-          </label>
-          <div className="mt-2 flex gap-2">
-            <input
-              id="medlemsnummer"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              autoFocus
-              value={medlemsnummer}
-              onChange={(e) => setMedlemsnummer(e.target.value)}
-              placeholder="t.ex. 15"
-              className="mono w-36 rounded-md border border-input bg-background px-4 py-3 text-lg outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
-            />
-            <button
-              type="submit"
-              disabled={loading || !medlemsnummer.trim()}
-              className="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-3 font-semibold text-accent-foreground shadow-sm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+            <label
+              htmlFor="medlemsnummer"
+              className="mono text-xs uppercase tracking-widest text-muted-foreground"
             >
-              {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <LogIn className="h-5 w-5" />
-              )}
-              Checka in
-            </button>
-          </div>
-        </form>
+              Medlemsnummer
+            </label>
+            <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+              <input
+                id="medlemsnummer"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                autoFocus
+                value={medlemsnummer}
+                onChange={(e) => setMedlemsnummer(e.target.value)}
+                placeholder="t.ex. 15"
+                className="mono w-full min-w-0 rounded-md border border-input bg-background px-3 py-3 text-lg outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
+              />
+              <button
+                type="submit"
+                disabled={loading || !medlemsnummer.trim()}
+                className="inline-flex items-center gap-2 whitespace-nowrap rounded-md bg-accent px-4 py-3 font-semibold text-accent-foreground shadow-sm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <LogIn className="h-5 w-5" />
+                )}
+                Checka in
+              </button>
+            </div>
+          </form>
+        )}
 
         {result && (
           <div className="mt-6">
@@ -175,4 +226,13 @@ function CheckInPage() {
       </div>
     </div>
   );
+}
+
+function formatSwedishDate(iso: string) {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("sv-SE", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
