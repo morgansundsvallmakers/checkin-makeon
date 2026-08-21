@@ -119,7 +119,7 @@ function AdminPage() {
           <Users className="h-4 w-4" /> Medlemmar
         </TabButton>
         <TabButton active={tab === "events"} onClick={() => setTab("events")}>
-          <Calendar className="h-4 w-4" /> Medlemskvällar
+          <Calendar className="h-4 w-4" /> Medlemsaktiviteter
         </TabButton>
         <TabButton active={tab === "admins"} onClick={() => setTab("admins")}>
           <ShieldCheck className="h-4 w-4" /> Administratörer
@@ -404,16 +404,16 @@ function EventsPanel() {
     <section className="rounded-2xl border border-border bg-card shadow-panel">
       <header className="flex items-center justify-between border-b border-border p-4">
         <div>
-          <h2 className="font-semibold">Medlemskvällar</h2>
+          <h2 className="font-semibold">Medlemsaktiviteter</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Endast en medlemskväll kan vara aktiv åt gången. Alla incheckningar registreras på den aktiva kvällen.
+            Endast en medlemsaktivitet kan vara aktiv åt gången. Alla incheckningar registreras på den aktiva medlemsaktiviteten.
           </p>
         </div>
         <button
           onClick={() => setCreating(true)}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-foreground hover:brightness-105"
         >
-          <Plus className="h-4 w-4" /> Ny medlemskväll
+          <Plus className="h-4 w-4" /> Ny medlemsaktivitet
         </button>
       </header>
       <div className="overflow-x-auto">
@@ -436,7 +436,7 @@ function EventsPanel() {
             ) : events.length === 0 ? (
               <tr>
                 <td colSpan={4} className="p-6 text-center text-muted-foreground">
-                  Inga medlemskvällar ännu.
+                  Inga medlemsaktiviteter ännu.
                 </td>
               </tr>
             ) : (
@@ -542,7 +542,7 @@ function EventModal({
   }
 
   return (
-    <Modal title={event ? "Redigera medlemskväll" : "Ny medlemskväll"} onClose={onClose}>
+    <Modal title={event ? "Redigera medlemsaktivitet" : "Ny medlemsaktivitet"} onClose={onClose}>
       <form onSubmit={save} className="space-y-3">
         <Field label="Titel">
           <input
@@ -626,10 +626,10 @@ function DeleteEventModal({
   }
 
   return (
-    <Modal title="Radera medlemskväll" onClose={onClose}>
+    <Modal title="Radera medlemsaktivitet" onClose={onClose}>
       <p className="text-sm">
         Är du säker på att du vill radera <strong>{event.titel}</strong> ({event.datum})?
-        All närvaro för denna kväll raderas också. Detta går inte att ångra.
+        All närvaro för denna aktivitet raderas också. Detta går inte att ångra.
       </p>
       {error && (
         <p className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
@@ -863,7 +863,7 @@ function ExportPanel() {
     <section className="rounded-2xl border border-border bg-card p-6 shadow-panel">
       <h2 className="font-semibold">Exportera närvarolista</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Ladda ner närvaro som CSV. Välj en specifik medlemskväll eller alla.
+        Ladda ner närvaro som CSV. Välj en specifik medlemsaktivitet eller alla.
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <select
@@ -871,7 +871,7 @@ function ExportPanel() {
           onChange={(e) => setSelected(e.target.value)}
           className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
         >
-          <option value="all">Alla medlemskvällar</option>
+          <option value="all">Alla medlemsaktiviteter</option>
           {events.map((ev) => (
             <option key={ev.id} value={ev.id}>
               {ev.datum} — {ev.titel}
