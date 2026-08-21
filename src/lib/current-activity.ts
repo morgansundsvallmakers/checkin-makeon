@@ -1,11 +1,11 @@
 type Activity = {
   titel: string;
-  datum?: string;
 };
 
 type ScheduledActivity = {
   titel: string;
   datum: string;
+  aktiv: boolean;
 };
 
 type Attendance = {
@@ -40,17 +40,19 @@ export function getHomeActivityState(
   today: string,
 ): HomeActivityState {
   const scheduled = activities ?? [];
-  const todayActivities = scheduled.filter((activity) => activity.datum === today);
+  const activeToday = scheduled.filter(
+    (activity) => activity.datum === today && activity.aktiv,
+  );
 
-  if (todayActivities.length > 0) {
+  if (activeToday.length > 0) {
     return {
       kind: "today",
-      titel: getSingleActivityTitle(todayActivities),
+      titel: getSingleActivityTitle(activeToday),
     };
   }
 
   const upcoming = scheduled
-    .filter((activity) => activity.datum > today)
+    .filter((activity) => activity.datum >= today)
     .sort((a, b) => a.datum.localeCompare(b.datum))[0];
 
   return upcoming
