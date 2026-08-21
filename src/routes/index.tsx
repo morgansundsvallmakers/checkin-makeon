@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, CalendarDays, CheckCircle2, Loader2, LogIn } from "lucide-react";
@@ -15,6 +15,7 @@ export const Route = createFileRoute("/")({
 type Result =
   | { kind: "ok"; namn: string; count: number; eventTitel: string; todayNumber: number }
   | { kind: "already"; namn: string; count: number; eventTitel: string; todayNumber: number }
+  | { kind: "member-unavailable" }
   | { kind: "error"; message: string };
 
 type HomeState = HomeActivityState | { kind: "loading" } | { kind: "error" };
@@ -63,10 +64,14 @@ function CheckInPage() {
       }
 
       if (response.status === "error") {
-        setResult({
-          kind: "error",
-          message: response.message ?? "Något gick fel.",
-        });
+        if (isMemberUnavailableMessage(response.message)) {
+          setResult({ kind: "member-unavailable" });
+        } else {
+          setResult({
+            kind: "error",
+            message: response.message ?? "Något gick fel.",
+          });
+        }
         return;
       }
 
@@ -215,6 +220,20 @@ function CheckInPage() {
                   </div>
                 </div>
               </div>
+            ) : result.kind === "member-unavailable" ? (
+              <div className="flex items-start gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-5">
+                <AlertCircle className="mt-1 h-5 w-5 shrink-0 text-destructive" />
+                <div className="space-y-2 text-sm">
+                  <p className="font-semibold">Ditt medlemsnummer finns inte aktivt i CheckIn MakeOn.</p>
+                  <p>Vill du delta, kontakta en administratör så hjälper vi dig att komma igång.</p>
+                  <Link
+                    to="/integritet"
+                    className="inline-block font-semibold text-accent underline underline-offset-4 hover:brightness-110"
+                  >
+                    Läs om integritet och personuppgifter
+                  </Link>
+                </div>
+              </div>
             ) : (
               <div className="flex items-start gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-5">
                 <AlertCircle className="mt-1 h-5 w-5 shrink-0 text-destructive" />
@@ -225,6 +244,13 @@ function CheckInPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function isMemberUnavailableMessage(message: string | null) {
+  return (
+    message === "Ingen medlem med det medlemsnumret hittades." ||
+    message === "Medlemskapet är inte aktivt. Kontakta admin."
   );
 }
 
