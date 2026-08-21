@@ -30,7 +30,7 @@ function CheckInPage() {
       const today = getSwedishCalendarDate();
       const { data: activities, error } = await supabase
         .from("events")
-        .select("titel, datum")
+        .select("titel, datum, aktiv")
         .gte("datum", today)
         .order("datum", { ascending: true });
 
