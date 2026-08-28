@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AktiviteterRouteImport } from './routes/aktiviteter'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as IntegritetRouteImport } from './routes/integritet'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 
@@ -36,6 +37,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IntegritetRoute = IntegritetRouteImport.update({
+  id: '/integritet',
+  path: '/integritet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeaderboardRoute = LeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/aktiviteter': typeof AktiviteterRoute
   '/auth': typeof AuthRoute
+  '/integritet': typeof IntegritetRoute
   '/leaderboard': typeof LeaderboardRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/aktiviteter': typeof AktiviteterRoute
   '/auth': typeof AuthRoute
+  '/integritet': typeof IntegritetRoute
   '/leaderboard': typeof LeaderboardRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
 }
@@ -69,22 +77,36 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/aktiviteter': typeof AktiviteterRoute
   '/auth': typeof AuthRoute
+  '/integritet': typeof IntegritetRoute
   '/leaderboard': typeof LeaderboardRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/admin' | '/aktiviteter' | '/auth' | '/leaderboard' | '/sitemap.xml'
+    | '/'
+    | '/admin'
+    | '/aktiviteter'
+    | '/auth'
+    | '/integritet'
+    | '/leaderboard'
+    | '/sitemap.xml'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/admin' | '/aktiviteter' | '/auth' | '/leaderboard' | '/sitemap.xml'
+    | '/'
+    | '/admin'
+    | '/aktiviteter'
+    | '/auth'
+    | '/integritet'
+    | '/leaderboard'
+    | '/sitemap.xml'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/aktiviteter'
     | '/auth'
+    | '/integritet'
     | '/leaderboard'
     | '/sitemap.xml'
   fileRoutesById: FileRoutesById
@@ -94,6 +116,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AktiviteterRoute: typeof AktiviteterRoute
   AuthRoute: typeof AuthRoute
+  IntegritetRoute: typeof IntegritetRoute
   LeaderboardRoute: typeof LeaderboardRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
@@ -128,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/integritet': {
+      id: '/integritet'
+      path: '/integritet'
+      fullPath: '/integritet'
+      preLoaderRoute: typeof IntegritetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/leaderboard': {
       id: '/leaderboard'
       path: '/leaderboard'
@@ -150,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AktiviteterRoute: AktiviteterRoute,
   AuthRoute: AuthRoute,
+  IntegritetRoute: IntegritetRoute,
   LeaderboardRoute: LeaderboardRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
 }

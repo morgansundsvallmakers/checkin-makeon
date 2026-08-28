@@ -20,11 +20,24 @@ type Result =
 
 type HomeState = HomeActivityState | { kind: "loading" } | { kind: "error" };
 
+type CheckInResponse = {
+  status: string;
+  display_name: string;
+  visit_count: number;
+  event_title: string;
+  today_number: number;
+  message: string | null;
+};
+
 function CheckInPage() {
   const [medlemsnummer, setMedlemsnummer] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [homeState, setHomeState] = useState<HomeState>({ kind: "loading" });
+  const [privacyMemberNumber, setPrivacyMemberNumber] = useState<string | null>(null);
+  const [privacyName, setPrivacyName] = useState("");
+  const [privacyError, setPrivacyError] = useState<string | null>(null);
+  const [privacyLoading, setPrivacyLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -57,37 +70,7 @@ function CheckInPage() {
       });
       if (error) throw error;
 
-      const response = data?.[0];
-      if (!response) {
-        setResult({ kind: "error", message: "Något gick fel." });
-        return;
-      }
-
-      if (response.status === "error") {
-        if (isMemberUnavailableMessage(response.message)) {
-          setResult({ kind: "member-unavailable" });
-        } else {
-          setResult({
-            kind: "error",
-            message: response.message ?? "Något gick fel.",
-          });
-        }
-        return;
-      }
-
-      if (response.status !== "ok" && response.status !== "already") {
-        setResult({ kind: "error", message: "Något gick fel." });
-        return;
-      }
-
-      setResult({
-        kind: response.status,
-        namn: response.display_name,
-        count: response.visit_count,
-        eventTitel: response.event_title,
-        todayNumber: response.today_number,
-      });
-      setMedlemsnummer("");
+      handleCheckInResponse(data?.[0], nummer);
     } catch (err) {
       setResult({
         kind: "error",
@@ -96,6 +79,87 @@ function CheckInPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleCheckInResponse(response: CheckInResponse | undefined, nummer: string) {
+    if (!response) {
+      setResult({ kind: "error", message: "Något gick fel." });
+      return;
+    }
+
+    if (response.status === "privacy_required") {
+      setPrivacyMemberNumber(nummer);
+      setPrivacyName("");
+      setPrivacyError(null);
+      return;
+    }
+
+    if (response.status === "error") {
+      setPrivacyMemberNumber(null);
+      setPrivacyName("");
+      setPrivacyError(null);
+      if (isMemberUnavailableMessage(response.message)) {
+        setResult({ kind: "member-unavailable" });
+      } else {
+        setResult({
+          kind: "error",
+          message: response.message ?? "Något gick fel.",
+        });
+      }
+      return;
+    }
+
+    if (response.status !== "ok" && response.status !== "already") {
+      setResult({ kind: "error", message: "Något gick fel." });
+      return;
+    }
+
+    setResult({
+      kind: response.status,
+      namn: response.display_name,
+      count: response.visit_count,
+      eventTitel: response.event_title,
+      todayNumber: response.today_number,
+    });
+    setPrivacyMemberNumber(null);
+    setPrivacyName("");
+    setPrivacyError(null);
+    setMedlemsnummer("");
+  }
+
+  async function handlePrivacyConfirmation(e: React.FormEvent) {
+    e.preventDefault();
+    if (!privacyMemberNumber || !privacyName.trim()) return;
+
+    setPrivacyLoading(true);
+    setPrivacyError(null);
+    try {
+      const { data, error } = await supabase.rpc("check_in_member", {
+        p_medlemsnummer: privacyMemberNumber,
+        p_namn: privacyName,
+      });
+      if (error) throw error;
+
+      const response = data?.[0];
+      if (response?.status === "privacy_name_mismatch") {
+        setPrivacyError(
+          response.message ?? "Namnet stämmer inte. Kontrollera uppgifterna och försök igen.",
+        );
+        return;
+      }
+
+      handleCheckInResponse(response, privacyMemberNumber);
+    } catch (err) {
+      setPrivacyError(err instanceof Error ? err.message : "Något gick fel.");
+    } finally {
+      setPrivacyLoading(false);
+    }
+  }
+
+  function cancelPrivacyConfirmation() {
+    setPrivacyMemberNumber(null);
+    setPrivacyName("");
+    setPrivacyError(null);
   }
 
   return (
@@ -243,6 +307,86 @@ function CheckInPage() {
           </div>
         )}
       </div>
+
+      {privacyMemberNumber && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="privacy-dialog-title"
+        >
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-5 shadow-panel sm:p-6">
+            <h2 id="privacy-dialog-title" className="text-2xl font-extrabold">
+              Bekräfta integritetsinformationen
+            </h2>
+            <div className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
+              <p>
+                CheckIn MakeOn sparar ditt namn, medlemsnummer och dina incheckningar för att kunna
+                visa deltagande och topplista. Deltagandet är frivilligt och påverkar inte ditt
+                medlemskap i Sundsvall Makers.
+              </p>
+              <p>
+                Skriv ditt namn för att bekräfta att du har tagit del av informationen och vill
+                använda CheckIn MakeOn.
+              </p>
+              <Link
+                to="/integritet"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block font-semibold text-accent underline underline-offset-4 hover:brightness-110"
+              >
+                Läs hela integritetsinformationen
+              </Link>
+            </div>
+
+            <form onSubmit={handlePrivacyConfirmation} className="mt-5 space-y-4">
+              <div>
+                <label
+                  htmlFor="privacy-name"
+                  className="mono text-xs uppercase tracking-widest text-muted-foreground"
+                >
+                  Ditt namn
+                </label>
+                <input
+                  id="privacy-name"
+                  type="text"
+                  autoComplete="name"
+                  autoFocus
+                  value={privacyName}
+                  onChange={(e) => setPrivacyName(e.target.value)}
+                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-3 outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
+                />
+              </div>
+
+              {privacyError && (
+                <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>{privacyError}</p>
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={privacyLoading}
+                  onClick={cancelPrivacyConfirmation}
+                  className="rounded-md border border-border px-4 py-3 font-semibold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Avbryt
+                </button>
+                <button
+                  type="submit"
+                  disabled={privacyLoading || !privacyName.trim()}
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-3 font-semibold text-accent-foreground shadow-sm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {privacyLoading && <Loader2 className="h-5 w-5 animate-spin" />}
+                  Bekräfta och fortsätt
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -250,7 +394,8 @@ function CheckInPage() {
 function isMemberUnavailableMessage(message: string | null) {
   return (
     message === "Ingen medlem med det medlemsnumret hittades." ||
-    message === "Medlemskapet är inte aktivt. Kontakta admin."
+    message === "Medlemskapet är inte aktivt. Kontakta admin." ||
+    message === "Medlemsnumret finns inte aktivt i CheckIn MakeOn."
   );
 }
 

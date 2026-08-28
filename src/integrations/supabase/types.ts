@@ -83,6 +83,8 @@ export type Database = {
           id: string
           medlemsnummer: string
           namn: string
+          privacy_acknowledged_at: string | null;
+          privacy_notice_version: string | null;
           skapad: string
         }
         Insert: {
@@ -90,6 +92,8 @@ export type Database = {
           id?: string
           medlemsnummer: string
           namn: string
+          privacy_acknowledged_at?: string | null;
+          privacy_notice_version?: string | null;
           skapad?: string
         }
         Update: {
@@ -97,6 +101,8 @@ export type Database = {
           id?: string
           medlemsnummer?: string
           namn?: string
+          privacy_acknowledged_at?: string | null;
+          privacy_notice_version?: string | null;
           skapad?: string
         }
         Relationships: []
@@ -129,7 +135,7 @@ export type Database = {
     Functions: {
       auto_toggle_events: { Args: never; Returns: undefined }
       check_in_member: {
-        Args: { p_medlemsnummer: string }
+        Args: { p_medlemsnummer: string; p_namn?: string }
         Returns: {
           display_name: string
           event_title: string

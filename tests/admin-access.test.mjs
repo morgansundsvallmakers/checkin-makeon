@@ -100,23 +100,31 @@ test("public leaderboard access is exposed only through the intended RPC", async
 });
 
 test("public check-in access is exposed only through the intended RPC", async () => {
-  const checkInMigration = await read(
+  const originalCheckInMigration = await read(
     "supabase/migrations/20260819210618_add_public_checkin_function.sql",
+  );
+  const privacyMigration = await read(
+    "supabase/migrations/20260828181252_add_privacy_acknowledgement_to_checkin.sql",
   );
   const checkInRoute = await read("src/routes/index.tsx");
 
-  assert.match(checkInMigration, /function public\.check_in_member/i);
-  assert.match(checkInMigration, /security definer/i);
-  assert.match(checkInMigration, /set search_path = public/i);
-  assert.match(checkInMigration, /on conflict \(member_id, event_id\) do nothing/i);
-  assert.match(checkInMigration, /Europe\/Stockholm/);
+  assert.match(originalCheckInMigration, /function public\.check_in_member/i);
+  assert.match(privacyMigration, /drop function public\.check_in_member\(text\)/i);
   assert.match(
-    checkInMigration,
-    /revoke all on function public\.check_in_member\(text\) from public/i,
+    privacyMigration,
+    /function public\.check_in_member\([\s\S]*p_namn text default null/i,
+  );
+  assert.match(privacyMigration, /security definer/i);
+  assert.match(privacyMigration, /set search_path = ''/i);
+  assert.match(privacyMigration, /on conflict \(member_id, event_id\) do nothing/i);
+  assert.match(privacyMigration, /Europe\/Stockholm/);
+  assert.match(
+    privacyMigration,
+    /revoke all on function public\.check_in_member\(text, text\) from public/i,
   );
   assert.match(
-    checkInMigration,
-    /grant execute on function public\.check_in_member\(text\) to anon, authenticated/i,
+    privacyMigration,
+    /grant execute on function public\.check_in_member\(text, text\) to anon, authenticated/i,
   );
   assert.match(checkInRoute, /\.rpc\("check_in_member"/);
   assert.doesNotMatch(checkInRoute, /\.from\("members"\)|\.from\("attendance"\)/);
