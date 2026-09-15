@@ -1,36 +1,101 @@
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Power, ShieldCheck } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { Loader2, Plus, Power, ShieldCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { inviteAdmin, listAdmins, setAdminActive } from "@/lib/admins.functions";
 import {
-  createDemoAdminUserService,
-  type AdminUser,
-} from "@/lib/admin-users.demo";
+  canCloseInviteModal,
+  createExclusiveAdminMutation,
+  getAdminStatusChangeBlockReason,
+  identifyCurrentAdminUser,
+} from "./admins-panel.logic";
 import { Field, Modal } from "./shared";
 
+type AdminRow = {
+  id: string;
+  user_id: string;
+  aktiv: boolean;
+  email: string | null;
+  name: string | null;
+  created_at: string | null;
+};
+
 export function AdminsPanel() {
-  const service = useMemo(() => createDemoAdminUserService(), []);
-  const [admins, setAdmins] = useState<AdminUser[] | null>(null);
+  const load = useServerFn(listAdmins);
+  const invite = useServerFn(inviteAdmin);
+  const setActive = useServerFn(setAdminActive);
+  const [admins, setAdmins] = useState<AdminRow[] | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [mutation, setMutation] = useState<
+    { type: "status"; id: string } | { type: "invite" } | null
+  >(null);
+  const mutationGate = useRef(createExclusiveAdminMutation()).current;
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [identifyingCurrentUser, setIdentifyingCurrentUser] = useState(true);
+  const [currentUserError, setCurrentUserError] = useState<string | null>(null);
 
-  async function refresh() {
-    setAdmins(await service.list());
-  }
+  const refresh = useCallback(async () => {
+    try {
+      const data = await load();
+      setAdmins(data as AdminRow[]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunde inte hämta administratörerna.");
+      setAdmins((current) => current ?? []);
+    }
+  }, [load]);
+
+  const identifyCurrentUser = useCallback(async () => {
+    setIdentifyingCurrentUser(true);
+    setCurrentUserError(null);
+    setCurrentUserId(null);
+
+    try {
+      setCurrentUserId(await identifyCurrentAdminUser(() => supabase.auth.getUser()));
+    } catch (err) {
+      setCurrentUserError(
+        err instanceof Error ? err.message : "Kunde inte identifiera den inloggade användaren.",
+      );
+    } finally {
+      setIdentifyingCurrentUser(false);
+    }
+  }, []);
 
   useEffect(() => {
     void refresh();
-  }, [service]);
+    void identifyCurrentUser();
+  }, [identifyCurrentUser, refresh]);
 
-  async function toggle(admin: AdminUser) {
+  const activeAdminCount = useMemo(
+    () => admins?.filter((admin) => admin.aktiv).length ?? 0,
+    [admins],
+  );
+
+  async function toggle(admin: AdminRow) {
     setError(null);
-    try {
-      await service.setActive(admin.id, !admin.active);
-      await refresh();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Kunde inte uppdatera administratören.",
-      );
+    setSuccess(null);
+
+    const blockReason = getAdminStatusChangeBlockReason(admin, currentUserId, activeAdminCount);
+    if (blockReason) {
+      setError(blockReason);
+      return;
+    }
+
+    const result = await mutationGate.run(async () => {
+      setMutation({ type: "status", id: admin.id });
+      try {
+        await setActive({ data: { id: admin.id, aktiv: !admin.aktiv } });
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Kunde inte uppdatera administratören.");
+      } finally {
+        setMutation(null);
+      }
+    });
+
+    if (!result.started) {
+      setError("En annan administratörsändring pågår. Vänta tills den är klar.");
     }
   }
 
@@ -44,12 +109,10 @@ export function AdminsPanel() {
           <p className="mt-1 text-xs text-muted-foreground">
             Bjud in administratörer och aktivera eller inaktivera deras åtkomst.
           </p>
-          <p className="mt-2 text-xs font-medium text-accent">
-            Förhandsvisning – ändringar av administratörer sparas inte.
-          </p>
         </div>
         <button
           onClick={() => setCreating(true)}
+          disabled={admins === null || mutation !== null}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-foreground hover:brightness-105"
         >
           <Plus className="h-4 w-4" /> Lägg till administratör
@@ -59,6 +122,26 @@ export function AdminsPanel() {
       {error && (
         <p className="m-4 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
           {error}
+        </p>
+      )}
+
+      {currentUserError && (
+        <div className="m-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
+          <span>{currentUserError}</span>
+          <button
+            type="button"
+            onClick={() => void identifyCurrentUser()}
+            disabled={identifyingCurrentUser || mutation !== null}
+            className="rounded-md border border-destructive/40 px-3 py-1 text-xs font-medium disabled:opacity-50"
+          >
+            {identifyingCurrentUser ? "Försöker igen…" : "Försök igen"}
+          </button>
+        </div>
+      )}
+
+      {success && (
+        <p className="m-4 rounded-md border border-success/40 bg-success/10 p-2 text-sm text-success">
+          {success}
         </p>
       )}
 
@@ -76,39 +159,55 @@ export function AdminsPanel() {
             {admins === null ? (
               <tr>
                 <td colSpan={4} className="p-6 text-center text-muted-foreground">
-                  Laddar demo…
+                  Laddar…
+                </td>
+              </tr>
+            ) : admins.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="p-6 text-center text-muted-foreground">
+                  Inga administratörer.
                 </td>
               </tr>
             ) : (
               admins.map((admin) => (
                 <tr key={admin.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-2 font-medium">
-                    {admin.name}
-                    {admin.isCurrentUser ? " (du)" : ""}
+                    {admin.name ?? "—"}
+                    {admin.user_id === currentUserId ? " (du)" : ""}
                   </td>
-                  <td className="px-4 py-2">{admin.email}</td>
+                  <td className="px-4 py-2">{admin.email ?? "—"}</td>
                   <td className="px-4 py-2">
                     <span
                       className={
                         "mono inline-flex rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest " +
-                        (admin.active
+                        (admin.aktiv
                           ? "bg-success/15 text-success"
                           : "bg-muted text-muted-foreground")
                       }
                     >
-                      {admin.active ? "aktiv" : "inaktiv"}
+                      {admin.aktiv ? "aktiv" : "inaktiv"}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={() => toggle(admin)}
-                      disabled={admin.isCurrentUser}
+                      disabled={
+                        mutation !== null ||
+                        identifyingCurrentUser ||
+                        currentUserId === null ||
+                        admin.user_id === currentUserId ||
+                        (admin.aktiv && activeAdminCount <= 1)
+                      }
                       className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:opacity-50"
                     >
-                      <Power className="h-3.5 w-3.5" />
-                      {admin.isCurrentUser
+                      {mutation?.type === "status" && mutation.id === admin.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Power className="h-3.5 w-3.5" />
+                      )}
+                      {admin.user_id === currentUserId
                         ? "Du själv"
-                        : admin.active
+                        : admin.aktiv
                           ? "Inaktivera"
                           : "Aktivera"}
                     </button>
@@ -124,9 +223,23 @@ export function AdminsPanel() {
         <AdminInviteModal
           onClose={() => setCreating(false)}
           onInvite={async (name, email) => {
-            await service.invite({ name, email });
-            await refresh();
-            setCreating(false);
+            const result = await mutationGate.run(async () => {
+              setMutation({ type: "invite" });
+              setError(null);
+              setSuccess(null);
+              try {
+                const invited = await invite({ data: { name, email } });
+                await refresh();
+                setSuccess(`Inbjudan skickades till ${invited.email}.`);
+                setCreating(false);
+              } finally {
+                setMutation(null);
+              }
+            });
+
+            if (!result.started) {
+              throw new Error("En annan administratörsändring pågår. Vänta tills den är klar.");
+            }
           }}
         />
       )}
@@ -148,26 +261,28 @@ function AdminInviteModal({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (saving) return;
     setSaving(true);
     setError(null);
     try {
       await onInvite(name, email);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Kunde inte lägga till administratören.",
-      );
+      setError(err instanceof Error ? err.message : "Kunde inte lägga till administratören.");
       setSaving(false);
     }
   }
 
+  function requestClose() {
+    if (canCloseInviteModal(saving)) onClose();
+  }
+
   return (
-    <Modal title="Lägg till administratör" onClose={onClose}>
+    <Modal title="Lägg till administratör" onClose={requestClose}>
       <form onSubmit={submit} className="space-y-3">
         <Field label="Namn">
           <input
             required
+            disabled={saving}
             value={name}
             onChange={(event) => setName(event.target.value)}
             className="w-full rounded-md border border-input bg-background px-3 py-2"
@@ -177,13 +292,14 @@ function AdminInviteModal({
           <input
             required
             type="email"
+            disabled={saving}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             className="w-full rounded-md border border-input bg-background px-3 py-2"
           />
         </Field>
         <p className="text-xs text-muted-foreground">
-          I den färdiga lösningen skickas en inbjudan där administratören får välja sitt lösenord. Förhandsvisningen skickar inget mejl.
+          En inbjudan skickas via e-post där administratören får välja sitt lösenord.
         </p>
         {error && (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
@@ -193,7 +309,8 @@ function AdminInviteModal({
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
+            disabled={saving}
             className="rounded-md border border-border px-4 py-2 text-sm hover:bg-secondary"
           >
             Avbryt

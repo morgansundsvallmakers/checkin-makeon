@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
+import {
+  canCloseInviteModal,
+  createExclusiveAdminMutation,
+  getAdminStatusChangeBlockReason,
+  identifyCurrentAdminUser,
+} from "../src/components/admin/admins-panel.logic.ts";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -40,7 +46,6 @@ test("registration trigger is the only account-to-role mechanism", async () => {
 
 test("admin invitations are server-side, authorized, and cleaned up on role failure", async () => {
   const adminFunctions = await read("src/lib/admins.functions.ts");
-  const adminsPanel = await read("src/components/admin/AdminsPanel.tsx");
 
   assert.match(
     adminFunctions,
@@ -65,7 +70,134 @@ test("admin invitations are server-side, authorized, and cleaned up on role fail
     /cleanupError[\s\S]*\.from\("user_roles"\)[\s\S]*\.delete\(\)[\s\S]*invitedUser\.id/,
   );
   assert.match(adminFunctions, /user_metadata\?\.name/);
-  assert.doesNotMatch(adminsPanel, /inviteAdmin/);
+});
+
+test("the admin panel uses the real admin backend without changing the preview", async () => {
+  const adminsPanel = await read("src/components/admin/AdminsPanel.tsx");
+  const adminPreview = await read("src/routes/admin-preview.tsx");
+
+  assert.match(adminsPanel, /useServerFn\(listAdmins\)/);
+  assert.match(adminsPanel, /useServerFn\(inviteAdmin\)/);
+  assert.match(adminsPanel, /useServerFn\(setAdminActive\)/);
+  assert.match(adminsPanel, /admin\.name \?\? "—"/);
+  assert.match(adminsPanel, /identifyCurrentAdminUser\(\(\) => supabase\.auth\.getUser\(\)\)/);
+  assert.match(adminsPanel, /getAdminStatusChangeBlockReason/);
+  assert.match(adminsPanel, /createExclusiveAdminMutation/);
+  assert.match(adminsPanel, /canCloseInviteModal\(saving\)/);
+  assert.match(adminsPanel, /<Modal title="Lägg till administratör" onClose=\{requestClose\}>/);
+  assert.match(
+    adminsPanel,
+    /type="button"[\s\S]*onClick=\{requestClose\}[\s\S]*disabled=\{saving\}[\s\S]*Avbryt/,
+  );
+  assert.doesNotMatch(adminsPanel, /createDemoAdminUserService|Laddar demo|Förhandsvisning/);
+  assert.match(adminPreview, /createDemoAdminUserService/);
+});
+
+test("admin mutations are exclusive and do not start competing refreshes", async () => {
+  const mutation = createExclusiveAdminMutation();
+  let finishFirst;
+  const firstMayFinish = new Promise((resolve) => {
+    finishFirst = resolve;
+  });
+  const calls = [];
+  const setAdminActiveMock = async () => {
+    calls.push("set-active");
+    await firstMayFinish;
+  };
+  const refreshMock = async () => calls.push("refresh");
+
+  const first = mutation.run(async () => {
+    await setAdminActiveMock();
+    await refreshMock();
+  });
+  const competing = await mutation.run(async () => {
+    calls.push("competing-mutation");
+    await refreshMock();
+  });
+
+  assert.equal(mutation.isBusy(), true);
+  assert.deepEqual(competing, { started: false });
+  assert.deepEqual(calls, ["set-active"]);
+
+  finishFirst();
+  await first;
+  assert.equal(mutation.isBusy(), false);
+  assert.deepEqual(calls, ["set-active", "refresh"]);
+
+  const later = await mutation.run(async () => calls.push("later-mutation"));
+  assert.equal(later.started, true);
+  assert.deepEqual(calls, ["set-active", "refresh", "later-mutation"]);
+});
+
+test("current-user identification fails closed and can be retried", async () => {
+  let attempts = 0;
+  const getUserMock = async () => {
+    attempts += 1;
+    return attempts === 1
+      ? { data: { user: null }, error: new Error("mock auth failure") }
+      : { data: { user: { id: "current-user" } }, error: null };
+  };
+
+  await assert.rejects(
+    identifyCurrentAdminUser(getUserMock),
+    /Kunde inte identifiera den inloggade användaren/,
+  );
+  assert.match(
+    getAdminStatusChangeBlockReason({ user_id: "another-user", aktiv: true }, null, 2),
+    /måste identifieras/,
+  );
+
+  assert.equal(await identifyCurrentAdminUser(getUserMock), "current-user");
+  assert.equal(attempts, 2);
+});
+
+test("invite modal cannot close or start another mutation while an invite is pending", async () => {
+  const mutation = createExclusiveAdminMutation();
+  let finishInvite;
+  const inviteMayFinish = new Promise((resolve) => {
+    finishInvite = resolve;
+  });
+  let inviteCalls = 0;
+  const inviteAdminMock = async () => {
+    inviteCalls += 1;
+    await inviteMayFinish;
+  };
+
+  const invite = mutation.run(inviteAdminMock);
+  const duplicate = await mutation.run(inviteAdminMock);
+
+  assert.equal(canCloseInviteModal(true), false);
+  assert.equal(canCloseInviteModal(false), true);
+  assert.deepEqual(duplicate, { started: false });
+  assert.equal(inviteCalls, 1);
+
+  finishInvite();
+  await invite;
+
+  await assert.rejects(
+    mutation.run(async () => {
+      throw new Error("mock invite failure");
+    }),
+    /mock invite failure/,
+  );
+  assert.equal(mutation.isBusy(), false);
+  assert.equal((await mutation.run(async () => "retry")).started, true);
+});
+
+test("admin status guard blocks self and final-admin deactivation", () => {
+  assert.match(
+    getAdminStatusChangeBlockReason({ user_id: "self", aktiv: true }, "self", 2),
+    /eget administratörskonto/,
+  );
+  assert.match(
+    getAdminStatusChangeBlockReason({ user_id: "other", aktiv: true }, "self", 1),
+    /sista aktiva administratören/,
+  );
+  assert.equal(getAdminStatusChangeBlockReason({ user_id: "other", aktiv: true }, "self", 2), null);
+  assert.equal(
+    getAdminStatusChangeBlockReason({ user_id: "other", aktiv: false }, "self", 1),
+    null,
+  );
 });
 
 test("admin status changes are atomic and database-protected", async () => {
