@@ -56,7 +56,7 @@ function AuthPage() {
     setResetting(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(address, {
-        redirectTo: window.location.origin + "/auth",
+        redirectTo: window.location.origin + "/update-password",
       });
       if (error) throw error;
       setInfo(
