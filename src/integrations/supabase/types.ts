@@ -154,6 +154,15 @@ export type Database = {
           visit_count: number
         }[]
       }
+      grant_invited_admin: {
+        Args: { _caller_id: string; _target_user_id: string }
+        Returns: {
+          aktiv: boolean
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

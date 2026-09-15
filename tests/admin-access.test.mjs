@@ -7,6 +7,10 @@ import {
   getAdminStatusChangeBlockReason,
   identifyCurrentAdminUser,
 } from "../src/components/admin/admins-panel.logic.ts";
+import {
+  ADMIN_INVITATION_UNCONFIRMED_MESSAGE,
+  completeAdminInvitation,
+} from "../src/lib/invite-admin.logic.ts";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -33,19 +37,26 @@ test("admin page requires an active admin role", async () => {
   assert.match(adminRoute, /r\.role === "admin" && r\.aktiv === true/);
 });
 
-test("registration trigger is the only account-to-role mechanism", async () => {
-  const candidateMigration = await read(
-    "supabase/migrations/20260722135654_register_inactive_admin_candidates.sql",
+test("automatic Auth registration no longer grants an administrator role", async () => {
+  const stopAutomaticGrantMigration = await read(
+    "supabase/migrations/20260915194000_stop_automatic_admin_role_creation.sql",
   );
   const adminFunctions = await read("src/lib/admins.functions.ts");
 
-  assert.match(candidateMigration, /insert into public\.user_roles/);
-  assert.match(candidateMigration, /make_active/);
+  assert.match(
+    stopAutomaticGrantMigration,
+    /drop trigger if exists on_auth_user_created_grant_first_admin on auth\.users/,
+  );
+  assert.match(
+    stopAutomaticGrantMigration,
+    /drop function if exists public\.grant_admin_to_first_user\(\)/,
+  );
   assert.doesNotMatch(adminFunctions, /createAdminFn|auth\.admin\.createUser/);
 });
 
-test("admin invitations are server-side, authorized, and cleaned up on role failure", async () => {
+test("admin invitations are server-side, authorized, and finalized by the protected RPC", async () => {
   const adminFunctions = await read("src/lib/admins.functions.ts");
+  const invitationLogic = await read("src/lib/invite-admin.logic.ts");
 
   assert.match(
     adminFunctions,
@@ -56,20 +67,135 @@ test("admin invitations are server-side, authorized, and cleaned up on role fail
   assert.match(adminFunctions, /email: z\.string\(\)\.trim\(\)\.email\(\)\.max\(254\)/);
   assert.match(adminFunctions, /role\.role === "admin" && role\.aktiv === true/);
   assert.match(adminFunctions, /new URL\("\/update-password", getRequestUrl\(\)\.origin\)/);
-  assert.match(
-    adminFunctions,
-    /inviteUserByEmail\(data\.email, \{[\s\S]*data: \{ name: data\.name \}/,
-  );
-  assert.match(
-    adminFunctions,
-    /\.upsert\([\s\S]*role: "admin", aktiv: true[\s\S]*onConflict: "user_id,role"/,
-  );
-  assert.match(adminFunctions, /auth\.admin\.deleteUser\([\s\S]*invitedUser\.id/);
-  assert.match(
-    adminFunctions,
-    /cleanupError[\s\S]*\.from\("user_roles"\)[\s\S]*\.delete\(\)[\s\S]*invitedUser\.id/,
+  assert.match(invitationLogic, /inviteUserByEmail\(email, \{[\s\S]*data: \{ name \}/);
+  assert.match(adminFunctions, /callerId: context\.userId/);
+  assert.match(adminFunctions, /supabaseAdmin\.rpc\("grant_invited_admin", args\)\.single\(\)/);
+  assert.doesNotMatch(
+    `${adminFunctions}\n${invitationLogic}`,
+    /auth\.admin\.deleteUser|\.from\("user_roles"\)[\s\S]*\.delete\(\)/,
   );
   assert.match(adminFunctions, /user_metadata\?\.name/);
+});
+
+test("Auth invitation failure stops before the role RPC", async () => {
+  let grantCalls = 0;
+
+  await assert.rejects(
+    completeAdminInvitation({
+      callerId: "verified-caller",
+      email: "new-admin@example.com",
+      name: "New Admin",
+      redirectTo: "https://example.com/update-password",
+      inviteUserByEmail: async () => ({
+        data: { user: null },
+        error: new Error("mock Auth failure"),
+      }),
+      grantAdminRole: async () => {
+        grantCalls += 1;
+        return { data: null, error: null };
+      },
+    }),
+    /mock Auth failure/,
+  );
+
+  assert.equal(grantCalls, 0);
+});
+
+test("role RPC receives only verified caller ID and Auth result target ID", async () => {
+  let receivedArgs;
+
+  const result = await completeAdminInvitation({
+    callerId: "verified-caller",
+    email: "form-email@example.com",
+    name: "New Admin",
+    redirectTo: "https://example.com/update-password",
+    inviteUserByEmail: async () => ({
+      data: {
+        user: {
+          id: "auth-user-id",
+          email: "normalized-email@example.com",
+          created_at: "2026-09-15T12:00:00Z",
+        },
+      },
+      error: null,
+    }),
+    grantAdminRole: async (args) => {
+      receivedArgs = args;
+      return {
+        data: { id: "role-id", user_id: "auth-user-id", aktiv: true },
+        error: null,
+      };
+    },
+  });
+
+  assert.deepEqual(receivedArgs, {
+    _caller_id: "verified-caller",
+    _target_user_id: "auth-user-id",
+  });
+  assert.equal(result.email, "normalized-email@example.com");
+  assert.equal(result.user_id, "auth-user-id");
+});
+
+test("ambiguous role failure performs no cleanup or retry", async () => {
+  let inviteCalls = 0;
+  let grantCalls = 0;
+  const logs = [];
+
+  await assert.rejects(
+    completeAdminInvitation({
+      callerId: "verified-caller",
+      email: "existing-unconfirmed@example.com",
+      name: "Existing User",
+      redirectTo: "https://example.com/update-password",
+      inviteUserByEmail: async () => {
+        inviteCalls += 1;
+        return {
+          data: { user: { id: "possibly-existing-auth-user" } },
+          error: null,
+        };
+      },
+      grantAdminRole: async () => {
+        grantCalls += 1;
+        return { data: null, error: new Error("mock RPC failure") };
+      },
+      logError: (message, details) => logs.push({ message, details }),
+    }),
+    new RegExp(ADMIN_INVITATION_UNCONFIRMED_MESSAGE),
+  );
+
+  assert.equal(inviteCalls, 1);
+  assert.equal(grantCalls, 1);
+  assert.equal(logs.length, 1);
+  assert.deepEqual(logs[0].details, {
+    callerUserId: "verified-caller",
+    invitedUserId: "possibly-existing-auth-user",
+    reason: "mock RPC failure",
+  });
+});
+
+test("grant_invited_admin serializes authorization and preserves target status", async () => {
+  const migration = await read("supabase/migrations/20260915195946_grant_invited_admin.sql");
+  const statusMigration = await read(
+    "supabase/migrations/20260813120201_protect_admin_activation.sql",
+  );
+  const lockPosition = migration.indexOf("pg_advisory_xact_lock(731904222)");
+  const callerReadPosition = migration.indexOf("where roles.user_id = _caller_id");
+
+  assert.ok(lockPosition >= 0 && lockPosition < callerReadPosition);
+  assert.match(statusMigration, /pg_advisory_xact_lock\(731904222\)/);
+  assert.match(migration, /where roles\.user_id = _caller_id[\s\S]*for update/);
+  assert.match(migration, /caller_role\.aktiv is not true[\s\S]*errcode = '42501'/);
+  assert.match(migration, /where roles\.user_id = _target_user_id[\s\S]*for update/);
+  assert.match(migration, /if target_role\.aktiv is not true[\s\S]*must be reactivated explicitly/);
+  assert.match(
+    migration,
+    /else[\s\S]*insert into public\.user_roles \(user_id, role, aktiv\)[\s\S]*true/,
+  );
+  assert.doesNotMatch(migration, /update public\.user_roles|on conflict|upsert/i);
+  assert.match(migration, /language plpgsql[\s\S]*volatile[\s\S]*security invoker/);
+  assert.match(migration, /set search_path = ''/);
+  assert.match(migration, /revoke execute[\s\S]*from public, anon, authenticated/);
+  assert.match(migration, /grant execute[\s\S]*to service_role/);
 });
 
 test("the admin panel uses the real admin backend without changing the preview", async () => {
