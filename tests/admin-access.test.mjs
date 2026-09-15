@@ -38,6 +38,36 @@ test("registration trigger is the only account-to-role mechanism", async () => {
   assert.doesNotMatch(adminFunctions, /createAdminFn|auth\.admin\.createUser/);
 });
 
+test("admin invitations are server-side, authorized, and cleaned up on role failure", async () => {
+  const adminFunctions = await read("src/lib/admins.functions.ts");
+  const adminsPanel = await read("src/components/admin/AdminsPanel.tsx");
+
+  assert.match(
+    adminFunctions,
+    /inviteAdmin = createServerFn\(\{ method: "POST" \}\)[\s\S]*\.middleware\(\[requireSupabaseAuth\]\)/,
+  );
+  assert.match(adminFunctions, /\.validator\(\(data\) =>/);
+  assert.match(adminFunctions, /name: z\.string\(\)\.trim\(\)\.min\(1\)\.max\(100\)/);
+  assert.match(adminFunctions, /email: z\.string\(\)\.trim\(\)\.email\(\)\.max\(254\)/);
+  assert.match(adminFunctions, /role\.role === "admin" && role\.aktiv === true/);
+  assert.match(adminFunctions, /new URL\("\/update-password", getRequestUrl\(\)\.origin\)/);
+  assert.match(
+    adminFunctions,
+    /inviteUserByEmail\(data\.email, \{[\s\S]*data: \{ name: data\.name \}/,
+  );
+  assert.match(
+    adminFunctions,
+    /\.upsert\([\s\S]*role: "admin", aktiv: true[\s\S]*onConflict: "user_id,role"/,
+  );
+  assert.match(adminFunctions, /auth\.admin\.deleteUser\([\s\S]*invitedUser\.id/);
+  assert.match(
+    adminFunctions,
+    /cleanupError[\s\S]*\.from\("user_roles"\)[\s\S]*\.delete\(\)[\s\S]*invitedUser\.id/,
+  );
+  assert.match(adminFunctions, /user_metadata\?\.name/);
+  assert.doesNotMatch(adminsPanel, /inviteAdmin/);
+});
+
 test("admin status changes are atomic and database-protected", async () => {
   const migration = await read("supabase/migrations/20260813120201_protect_admin_activation.sql");
 
