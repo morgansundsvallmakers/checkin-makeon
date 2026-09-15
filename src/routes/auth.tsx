@@ -15,7 +15,9 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -26,6 +28,7 @@ function AuthPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setInfo(null);
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -38,6 +41,35 @@ function AuthPage() {
       setError(err instanceof Error ? err.message : "Något gick fel.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function resetPassword() {
+    const address = email.trim();
+    setError(null);
+    setInfo(null);
+    if (!address) {
+      setError("Ange din e-postadress först.");
+      return;
+    }
+
+    setResetting(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(address, {
+        redirectTo: window.location.origin + "/auth",
+      });
+      if (error) throw error;
+      setInfo(
+        "Om e-postadressen tillhör ett konto skickas ett meddelande med instruktioner för att återställa lösenordet.",
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Kunde inte skicka instruktioner för lösenordsåterställning.",
+      );
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -79,10 +111,23 @@ function AuthPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
             />
+            <button
+              type="button"
+              onClick={resetPassword}
+              disabled={resetting}
+              className="mt-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              {resetting ? "Skickar…" : "Glömt lösenord?"}
+            </button>
           </div>
           {error && (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
               {error}
+            </p>
+          )}
+          {info && (
+            <p className="rounded-md border border-success/40 bg-success/10 p-2 text-sm">
+              {info}
             </p>
           )}
           <button
