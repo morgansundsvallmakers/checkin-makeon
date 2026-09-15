@@ -12,12 +12,10 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -28,28 +26,14 @@ function AuthPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setInfo(null);
     setLoading(true);
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        navigate({ to: "/admin", replace: true });
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: window.location.origin + "/admin" },
-        });
-        if (error) throw error;
-        setInfo(
-          "Konto skapat. Bekräfta din e-post om det krävs. En befintlig aktiv administratör måste sedan aktivera kontot innan adminpanelen kan användas.",
-        );
-        setMode("signin");
-      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      navigate({ to: "/admin", replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Något gick fel.");
     } finally {
@@ -68,9 +52,7 @@ function AuthPage() {
       <div className="rounded-2xl border border-border bg-card p-6 shadow-panel">
         <div className="mb-4 flex items-center gap-2">
           <Lock className="h-5 w-5 text-accent" />
-          <h1 className="text-xl font-bold">
-            {mode === "signin" ? "Logga in" : "Skapa konto"}
-          </h1>
+          <h1 className="text-xl font-bold">Logga in</h1>
         </div>
         <form onSubmit={submit} className="space-y-3">
           <div>
@@ -103,32 +85,18 @@ function AuthPage() {
               {error}
             </p>
           )}
-          {info && (
-            <p className="rounded-md border border-success/40 bg-success/10 p-2 text-sm">
-              {info}
-            </p>
-          )}
           <button
             type="submit"
             disabled={loading}
             className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-2.5 font-semibold text-accent-foreground transition hover:brightness-105 disabled:opacity-50"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {mode === "signin" ? "Logga in" : "Skapa konto"}
+            Logga in
           </button>
         </form>
-        <button
-          onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
-            setError(null);
-            setInfo(null);
-          }}
-          className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          {mode === "signin"
-            ? "Ny administratör? Registrera konto"
-            : "Har du redan konto? Logga in"}
-        </button>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          Nya administratörer läggs till av en befintlig administratör och får en inbjudan via e-post.
+        </p>
         <p className="mono mt-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground">
           lägg till medlemmar och skapa event som admin
         </p>
