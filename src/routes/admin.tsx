@@ -69,7 +69,7 @@ function AdminPage() {
   }
 
   return (
-    <div className="mx-auto w-[80%] px-4 py-10">
+    <div className="mx-auto w-full max-w-6xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <span className="mono text-xs uppercase tracking-widest text-accent">// admin</span>
@@ -83,7 +83,7 @@ function AdminPage() {
         </button>
       </div>
 
-      <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1 shadow-sm">
+      <div className="mb-6 grid w-full grid-cols-2 gap-1 rounded-lg border border-border bg-card p-1 shadow-sm sm:inline-grid sm:w-auto sm:grid-cols-4">
         <TabButton active={tab === "members"} onClick={() => setTab("members")}>
           <Users className="h-4 w-4" /> Medlemmar
         </TabButton>
@@ -118,7 +118,7 @@ function TabButton({
     <button
       onClick={onClick}
       className={
-        "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition " +
+        "inline-flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight transition sm:gap-2 sm:px-3 sm:text-sm " +
         (active
           ? "bg-accent text-accent-foreground shadow-sm"
           : "text-muted-foreground hover:text-foreground")

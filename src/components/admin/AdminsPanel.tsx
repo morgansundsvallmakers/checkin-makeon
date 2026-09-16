@@ -100,9 +100,9 @@ export function AdminsPanel() {
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-card shadow-panel">
+    <section className="min-w-0 rounded-2xl border border-border bg-card shadow-panel">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="flex items-center gap-2 font-semibold">
             <ShieldCheck className="h-4 w-4" /> Administratörer
           </h2>
@@ -145,7 +145,7 @@ export function AdminsPanel() {
         </p>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead className="mono text-xs uppercase tracking-widest text-muted-foreground">
             <tr className="border-b border-border">
@@ -217,6 +217,69 @@ export function AdminsPanel() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="divide-y divide-border md:hidden">
+        {admins === null ? (
+          <p className="p-6 text-center text-sm text-muted-foreground">Laddar…</p>
+        ) : admins.length === 0 ? (
+          <p className="p-6 text-center text-sm text-muted-foreground">
+            Inga administratörer.
+          </p>
+        ) : (
+          admins.map((admin) => (
+            <div key={admin.id} className="min-w-0 space-y-3 p-4 text-sm">
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Namn</p>
+                <p className="font-medium">
+                  {admin.name ?? "—"}
+                  {admin.user_id === currentUserId ? " (du)" : ""}
+                </p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">E-post</p>
+                <p className="break-all">{admin.email ?? "—"}</p>
+              </div>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="mb-1 text-xs text-muted-foreground">Status</p>
+                  <span
+                    className={
+                      "mono inline-flex rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest " +
+                      (admin.aktiv
+                        ? "bg-success/15 text-success"
+                        : "bg-muted text-muted-foreground")
+                    }
+                  >
+                    {admin.aktiv ? "aktiv" : "inaktiv"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => toggle(admin)}
+                  disabled={
+                    mutation !== null ||
+                    identifyingCurrentUser ||
+                    currentUserId === null ||
+                    admin.user_id === currentUserId ||
+                    (admin.aktiv && activeAdminCount <= 1)
+                  }
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:opacity-50"
+                >
+                  {mutation?.type === "status" && mutation.id === admin.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Power className="h-3.5 w-3.5" />
+                  )}
+                  {admin.user_id === currentUserId
+                    ? "Du själv"
+                    : admin.aktiv
+                      ? "Inaktivera"
+                      : "Aktivera"}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {creating && (

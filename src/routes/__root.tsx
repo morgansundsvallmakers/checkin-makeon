@@ -154,7 +154,7 @@ function SiteHeader() {
             </span>
           </span>
         </Link>
-        <nav className="flex w-full flex-wrap items-center justify-center gap-1 text-xs sm:w-auto sm:text-sm">
+        <nav className="grid w-full grid-cols-2 gap-1 text-xs sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-center sm:text-sm">
           <NavLink to="/">Incheckning</NavLink>
           <NavLink to="/aktiviteter">Kommande aktiviteter</NavLink>
           <NavLink to="/leaderboard">Topplista</NavLink>
@@ -174,10 +174,10 @@ function NavLink({ to, children }: { to: string; children: ReactNode }) {
     <Link
       to={to}
       activeOptions={{ exact: to === "/" }}
-      className="rounded-md px-3 py-1.5 font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+      className="min-w-0 rounded-md px-2 py-1.5 text-center font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground sm:px-3"
       activeProps={{
         className:
-          "rounded-md px-3 py-1.5 font-semibold text-foreground bg-secondary",
+          "min-w-0 rounded-md bg-secondary px-2 py-1.5 text-center font-semibold text-foreground sm:px-3",
       }}
     >
       {children}
