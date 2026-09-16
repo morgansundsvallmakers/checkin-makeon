@@ -154,7 +154,7 @@ function SiteHeader() {
             </span>
           </span>
         </Link>
-        <nav className="grid w-full grid-cols-2 gap-1 text-xs sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-center sm:text-sm">
+        <nav className="flex w-full flex-wrap items-center justify-center gap-1 text-xs sm:w-auto sm:text-sm">
           <NavLink to="/">Incheckning</NavLink>
           <NavLink to="/aktiviteter">Kommande aktiviteter</NavLink>
           <NavLink to="/leaderboard">Topplista</NavLink>
