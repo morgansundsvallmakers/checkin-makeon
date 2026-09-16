@@ -83,7 +83,7 @@ function AdminPage() {
         </button>
       </div>
 
-      <div className="mb-6 grid w-full grid-cols-2 gap-1 rounded-lg border border-border bg-card p-1 shadow-sm sm:inline-grid sm:w-auto sm:grid-cols-4">
+      <div className="mb-6 flex w-full flex-wrap gap-1 rounded-lg border border-border bg-card p-1 shadow-sm sm:w-auto">
         <TabButton active={tab === "members"} onClick={() => setTab("members")}>
           <Users className="h-4 w-4" /> Medlemmar
         </TabButton>
