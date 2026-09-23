@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trophy, Medal } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trophy, Medal } from "lucide-react";
 import { formatFixItStars } from "@/lib/fixit-stars";
 
 export const Route = createFileRoute("/leaderboard")({
@@ -25,17 +25,51 @@ type Row = {
 };
 type Range = "month" | "year" | "total";
 
+function stockholmCurrentMonth() {
+  const parts = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Stockholm",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  return `${year}-${month}-01`;
+}
+
+function shiftMonth(month: string, offset: number) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const shifted = new Date(Date.UTC(year, monthNumber - 1 + offset, 1));
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function formatMonth(month: string) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Stockholm",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(Date.UTC(year, monthNumber - 1, 15, 12)));
+}
+
 function LeaderboardPage() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [range, setRange] = useState<Range>("month");
+  const [month, setMonth] = useState(stockholmCurrentMonth);
+  const currentMonth = stockholmCurrentMonth();
 
   useEffect(() => {
     let alive = true;
     setRows(null);
     (async () => {
-      const { data, error } = await supabase.rpc("get_public_leaderboard", {
-        p_range: range,
-      });
+      const { data, error } =
+        range === "month"
+          ? await supabase.rpc("get_public_leaderboard", {
+              p_range: range,
+              p_month: month,
+            })
+          : await supabase.rpc("get_public_leaderboard", {
+              p_range: range,
+            });
       if (!alive) return;
       if (error) {
         console.error("Kunde inte hämta topplistan", error);
@@ -47,7 +81,7 @@ function LeaderboardPage() {
     return () => {
       alive = false;
     };
-  }, [range]);
+  }, [range, month]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
@@ -73,6 +107,31 @@ function LeaderboardPage() {
           Totalt
         </RangeButton>
       </div>
+
+      {range === "month" && (
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-border bg-card px-2 py-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setMonth((value) => shiftMonth(value, -1))}
+            className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+            aria-label="Föregående månad"
+            title="Föregående månad"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <span className="text-sm font-semibold capitalize">{formatMonth(month)}</span>
+          <button
+            type="button"
+            onClick={() => setMonth((value) => shiftMonth(value, 1))}
+            disabled={month >= currentMonth}
+            className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+            aria-label="Nästa månad"
+            title="Nästa månad"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-panel">
         {rows === null ? (
