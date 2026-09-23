@@ -98,7 +98,7 @@ function LeaderboardPage() {
 
       <div className="mb-6 inline-flex flex-wrap rounded-lg border border-border bg-card p-1 shadow-sm">
         <RangeButton active={range === "month"} onClick={() => setRange("month")}>
-          Denna månaden
+          Denna månad
         </RangeButton>
         <RangeButton active={range === "year"} onClick={() => setRange("year")}>
           I år
