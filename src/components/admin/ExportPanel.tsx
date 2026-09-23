@@ -7,6 +7,7 @@ type Event = { id: string; titel: string; datum: string; aktiv: boolean };
 export function ExportPanel() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selected, setSelected] = useState<string>("all");
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     supabase
@@ -23,47 +24,81 @@ export function ExportPanel() {
   }, [selected, events]);
 
   async function download() {
-    let query = supabase
-      .from("attendance")
-      .select("incheckad, member_id, event_id")
-      .order("incheckad", { ascending: true });
-    if (selected !== "all") query = query.eq("event_id", selected);
-    const { data: att } = await query;
-    const { data: members } = await supabase.from("members").select("id, medlemsnummer, namn");
-    const { data: allEvents } = await supabase.from("events").select("id, titel, datum");
+    setExporting(true);
+    try {
+      let query = supabase
+        .from("attendance")
+        .select("incheckad, member_id, event_id")
+        .order("incheckad", { ascending: true });
+      if (selected !== "all") query = query.eq("event_id", selected);
 
-    const mMap = new Map((members ?? []).map((m) => [m.id, m]));
-    const eMap = new Map((allEvents ?? []).map((e) => [e.id, e]));
+      const [{ data: att }, { data: members }, { data: allEvents }] = await Promise.all([
+        query,
+        supabase.from("members").select("id, medlemsnummer, namn"),
+        supabase.from("events").select("id, titel, datum"),
+      ]);
 
-    const header = [
-      "medlemsnummer",
-      "namn",
-      "medlemskvall_titel",
-      "medlemskvall_datum",
-      "incheckad",
-    ];
-    const rows = (att ?? []).map((a) => {
-      const m = mMap.get(a.member_id);
-      const e = eMap.get(a.event_id);
-      return [m?.medlemsnummer ?? "", m?.namn ?? "", e?.titel ?? "", e?.datum ?? "", a.incheckad];
-    });
-    const csv = [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\n") + "\n";
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `narvaro_${selectedLabel}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const mMap = new Map((members ?? []).map((m) => [m.id, m]));
+      const eMap = new Map((allEvents ?? []).map((e) => [e.id, e]));
+
+      const ExcelJS = await import("exceljs");
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "CheckIn MakeOn";
+      const worksheet = workbook.addWorksheet("Närvaro", {
+        views: [{ state: "frozen", ySplit: 1 }],
+      });
+
+      worksheet.columns = [
+        { header: "Medlemsnummer", key: "memberNumber", width: 18 },
+        { header: "Namn", key: "name", width: 28 },
+        { header: "Aktivitet", key: "event", width: 32 },
+        { header: "Datum", key: "eventDate", width: 14 },
+        { header: "Incheckad", key: "checkedIn", width: 22 },
+      ];
+
+      for (const attendance of att ?? []) {
+        const member = mMap.get(attendance.member_id);
+        const event = eMap.get(attendance.event_id);
+        worksheet.addRow({
+          memberNumber: member?.medlemsnummer ?? "",
+          name: member?.namn ?? "",
+          event: event?.titel ?? "",
+          eventDate: event?.datum ? localDate(event.datum) : "",
+          checkedIn: attendance.incheckad ? new Date(attendance.incheckad) : "",
+        });
+      }
+
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).alignment = { vertical: "middle" };
+      worksheet.autoFilter = {
+        from: "A1",
+        to: "E1",
+      };
+      worksheet.getColumn("eventDate").numFmt = "yyyy-mm-dd";
+      worksheet.getColumn("checkedIn").numFmt = "yyyy-mm-dd hh:mm";
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `narvaro_${selectedLabel}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
     <section className="rounded-2xl border border-border bg-card p-6 shadow-panel">
       <h2 className="font-semibold">Exportera närvarolista</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Ladda ner närvaro som CSV. Välj en specifik medlemsaktivitet eller alla.
+        Ladda ner närvaro som Excel-fil. Välj en specifik medlemsaktivitet eller alla.
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <select
@@ -80,20 +115,21 @@ export function ExportPanel() {
         </select>
         <button
           onClick={download}
-          className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:brightness-105"
+          disabled={exporting}
+          className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:brightness-105 disabled:cursor-wait disabled:opacity-60"
         >
-          <Download className="h-4 w-4" /> Ladda ner CSV
+          <Download className="h-4 w-4" /> {exporting ? "Skapar Excel-fil…" : "Ladda ner Excel"}
         </button>
       </div>
     </section>
   );
 }
 
-function csvCell(v: unknown) {
-  const s = String(v ?? "");
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
+function localDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
+
 function slug(s: string) {
   return s
     .toLowerCase()

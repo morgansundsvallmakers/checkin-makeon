@@ -145,15 +145,25 @@ export type Database = {
           visit_count: number
         }[]
       }
-      get_public_leaderboard: {
-        Args: { p_range?: string }
-        Returns: {
-          display_name: string
-          fixit_stars: number
-          rank: number
-          visit_count: number
-        }[]
-      }
+      get_public_leaderboard:
+        | {
+            Args: { p_range?: string }
+            Returns: {
+              display_name: string
+              fixit_stars: number
+              rank: number
+              visit_count: number
+            }[]
+          }
+        | {
+            Args: { p_month: string; p_range: string }
+            Returns: {
+              display_name: string
+              fixit_stars: number
+              rank: number
+              visit_count: number
+            }[]
+          }
       grant_invited_admin: {
         Args: { _caller_id: string; _target_user_id: string }
         Returns: {
