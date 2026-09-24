@@ -192,8 +192,14 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <div className="flex min-h-dvh flex-col">
         <SiteHeader />
-        <main className="flex-1">
-          <Outlet />
+        <main className="relative flex-1">
+          <div
+            aria-hidden="true"
+            className="grid-bg pointer-events-none absolute inset-0 opacity-40 [-webkit-mask-image:radial-gradient(ellipse_75vw_30rem_at_50%_18rem,black_20%,transparent_75%)] [mask-image:radial-gradient(ellipse_75vw_30rem_at_50%_18rem,black_20%,transparent_75%)]"
+          />
+          <div className="relative">
+            <Outlet />
+          </div>
         </main>
         <footer className="border-t border-border/70 py-6 text-center text-xs text-muted-foreground">
           <span className="mono">// byggt för makers, av makers</span>
