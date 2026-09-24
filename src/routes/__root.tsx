@@ -195,7 +195,7 @@ function RootComponent() {
         <main className="relative flex-1">
           <div
             aria-hidden="true"
-            className="grid-bg pointer-events-none absolute inset-0 opacity-30 [-webkit-mask-image:radial-gradient(ellipse_75vw_30rem_at_50%_18rem,black_20%,transparent_75%)] [mask-image:radial-gradient(ellipse_75vw_30rem_at_50%_18rem,black_20%,transparent_75%)]"
+            className="grid-bg pointer-events-none absolute inset-0 opacity-25 [-webkit-mask-image:radial-gradient(ellipse_75vw_30rem_at_50%_18rem,black_20%,transparent_75%)] [mask-image:radial-gradient(ellipse_75vw_30rem_at_50%_18rem,black_20%,transparent_75%)]"
           />
           <div className="relative">
             <Outlet />
