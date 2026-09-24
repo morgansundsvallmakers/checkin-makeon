@@ -63,8 +63,8 @@ export function ExportPanel() {
           memberNumber: member?.medlemsnummer ?? "",
           name: member?.namn ?? "",
           event: event?.titel ?? "",
-          eventDate: event?.datum ? localDate(event.datum) : "",
-          checkedIn: attendance.incheckad ? new Date(attendance.incheckad) : "",
+          eventDate: event?.datum ? excelDate(event.datum) : "",
+          checkedIn: attendance.incheckad ? excelStockholmDateTime(attendance.incheckad) : "",
         });
       }
 
@@ -125,9 +125,37 @@ export function ExportPanel() {
   );
 }
 
-function localDate(value: string) {
+const stockholmDateTimeFormatter = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Europe/Stockholm",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
+function excelDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function excelStockholmDateTime(value: string) {
+  const parts = stockholmDateTimeFormatter.formatToParts(new Date(value));
+  const numberPart = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+
+  return new Date(
+    Date.UTC(
+      numberPart("year"),
+      numberPart("month") - 1,
+      numberPart("day"),
+      numberPart("hour"),
+      numberPart("minute"),
+      numberPart("second"),
+    ),
+  );
 }
 
 function slug(s: string) {
