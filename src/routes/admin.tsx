@@ -69,7 +69,9 @@ function AdminPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-10">
+    <div className="relative">
+      <div className="grid-bg absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]" />
+      <div className="relative mx-auto w-full max-w-6xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <span className="mono text-xs uppercase tracking-widest text-accent">// admin</span>
@@ -102,6 +104,7 @@ function AdminPage() {
       {tab === "events" && <EventsPanel />}
       {tab === "admins" && <AdminsPanel />}
       {tab === "export" && <ExportPanel />}
+      </div>
     </div>
   );
 }
