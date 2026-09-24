@@ -72,7 +72,9 @@ function UpdatePasswordPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-md flex-col px-4 py-14">
+    <div className="relative">
+      <div className="grid-bg absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]" />
+      <div className="relative mx-auto flex max-w-md flex-col px-4 py-14">
       <div className="mb-6 flex items-center gap-2">
         <span className="mono text-xs uppercase tracking-widest text-accent">
           // admin
@@ -161,6 +163,7 @@ function UpdatePasswordPage() {
             </button>
           </form>
         )}
+      </div>
       </div>
     </div>
   );
