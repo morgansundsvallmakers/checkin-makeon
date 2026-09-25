@@ -113,7 +113,7 @@ export function AdminsPanel() {
         <button
           onClick={() => setCreating(true)}
           disabled={admins === null || mutation !== null}
-          className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-foreground hover:brightness-105"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground hover:brightness-105 sm:w-auto sm:justify-start sm:py-1.5"
         >
           <Plus className="h-4 w-4" /> Lägg till administratör
         </button>
