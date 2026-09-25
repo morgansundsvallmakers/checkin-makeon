@@ -29,7 +29,7 @@ export function EventsPanel() {
 
   return (
     <section className="rounded-2xl border border-border bg-card shadow-panel">
-      <header className="flex items-center justify-between border-b border-border p-4">
+      <header className="flex flex-col items-stretch gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-semibold">Medlemsaktiviteter</h2>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -39,7 +39,7 @@ export function EventsPanel() {
         </div>
         <button
           onClick={() => setCreating(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-foreground hover:brightness-105"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground hover:brightness-105 sm:w-auto sm:justify-start sm:py-1.5"
         >
           <Plus className="h-4 w-4" /> Ny medlemsaktivitet
         </button>
