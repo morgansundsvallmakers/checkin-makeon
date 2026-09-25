@@ -100,11 +100,11 @@ export function ExportPanel() {
       <p className="mt-1 text-sm text-muted-foreground">
         Ladda ner närvaro som Excel-fil. Välj en specifik medlemsaktivitet eller alla.
       </p>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
-          className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
+          className="w-full min-w-0 max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/40 sm:w-auto"
         >
           <option value="all">Alla medlemsaktiviteter</option>
           {events.map((ev) => (
@@ -116,7 +116,7 @@ export function ExportPanel() {
         <button
           onClick={download}
           disabled={exporting}
-          className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:brightness-105 disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:brightness-105 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
         >
           <Download className="h-4 w-4" /> {exporting ? "Skapar Excel-fil…" : "Ladda ner Excel"}
         </button>
